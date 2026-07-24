@@ -11,7 +11,6 @@
     .nav-bar a { text-decoration: none; color: #007bff; font-weight: bold; }
     .print-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     
-    /* 종이 리포트 스타일 */
     .paper-page {
       max-width: 900px;
       margin: 0 auto 25px auto;
@@ -19,30 +18,22 @@
       padding: 35px;
       border: 1px solid #111;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      position: relative;
     }
     .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
     .header-title { font-size: 18px; font-weight: bold; }
     .check-box { font-size: 14px; font-weight: bold; }
     
     .section-box { border: 1px solid #333; padding: 18px; margin-bottom: 20px; border-radius: 4px; }
-    .section-title { font-weight: bold; font-size: 15px; margin-bottom: 12px; }
+    .section-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; }
     
     .field-row { margin-bottom: 8px; line-height: 1.6; font-size: 14px; }
     .field-label { font-weight: bold; color: #333; }
     .field-value { color: #0056b3; font-weight: 500; }
     
-    /* 오답 사유 체크박스 목록 */
-    .checkbox-list { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; font-size: 13.5px; }
-    .checkbox-item { display: flex; align-items: center; gap: 8px; color: #555; }
-    .checkbox-item.checked { color: #d9480f; font-weight: bold; }
-    
-    /* 상황 점검 표 */
     .eval-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    .eval-table th, .eval-table td { border: 1px solid #444; padding: 10px; text-align: left; vertical-align: top; }
-    .eval-table th { background: #f8f9fa; text-align: center; }
+    .eval-table th, .eval-table td { border: 1px solid #444; padding: 8px; text-align: left; vertical-align: top; }
+    .eval-table th { background: #f8f9fa; text-align: center; font-weight: bold; }
 
-    /* 선생님 피드백 서식 */
     .teacher-box { background: #f1f3f5; border: 2px solid #228be6; padding: 20px; border-radius: 8px; margin-top: 20px; }
     .teacher-box textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-top: 8px; resize: vertical; }
     .save-btn { background: #228be6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; margin-top: 8px; }
@@ -71,7 +62,6 @@
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
-    // URL에서 id 파라미터 가져오기
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
 
@@ -93,11 +83,10 @@
         return;
       }
 
-      // 작성 데이터 정리
-      const data = note.content || note; // JSON 형태 혹은 단일 컬럼 대응
+      const data = note.content || note;
 
       container.innerHTML = `
-        <!-- [PAGE 1] 시험 직후 해설 확인 전 작성 -->
+        <!-- PAGE 1: 시험 직후 해설 확인 전 -->
         <div class="paper-page">
           <div class="header-top">
             <div>
@@ -125,10 +114,10 @@
             <div class="field-row"><span class="field-label">2-1. 정답 근거 문장 1 :</span></div>
             <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence1 || '기록 없음'}</div>
             
-            <div class="field-row" style="margin-top:10px;"><span class="field-label">2-2. 정답 근거 문장 2 :</span></div>
+            <div class="field-row" style="margin-top:8px;"><span class="field-label">2-2. 정답 근거 문장 2 :</span></div>
             <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence2 || '기록 없음'}</div>
 
-            <div class="field-row" style="margin-top:10px;"><span class="field-label">2-3. 한 줄 요약 (중심 내용) :</span></div>
+            <div class="field-row" style="margin-top:8px;"><span class="field-label">2-3. 한 줄 요약 (중심 내용) :</span></div>
             <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.summary || '기록 없음'}</div>
           </div>
 
@@ -142,7 +131,7 @@
           </div>
         </div>
 
-        <!-- [PAGE 2] 강의 및 해설 확인 후 기록 -->
+        <!-- PAGE 2: 강의 및 해설 확인 후 -->
         <div class="paper-page">
           <div class="header-top">
             <div class="header-title">강의 및 해설 확인 후 기록</div>
@@ -156,16 +145,47 @@
           </div>
 
           <div class="section-box">
-            <div class="section-title">2. 주요 오답 사유 및 분석 결과</div>
-            <div class="field-row"><span class="field-label">체크된 오답 원인 :</span></div>
-            <div class="field-value" style="padding:8px; background:#f8f9fa; border-radius:4px; margin-top:5px;">
-              ${data.wrong_reasons ? data.wrong_reasons.join(', ') : '선택된 항목 없음'}
+            <div class="section-title">2. 주요 오답 사유 (체크 항목)</div>
+            <div class="field-value" style="padding:10px; background:#f8f9fa; border-radius:4px;">
+              ${data.wrong_reasons ? data.wrong_reasons.join('<br>• ') : '선택된 항목 없음'}
             </div>
           </div>
 
           <div class="section-box">
-            <div class="section-title">몰랐던 어휘 / 표현 정리</div>
+            <div class="section-title">3. 나의 풀이 방식 분석</div>
+            <div class="field-row"><span class="field-label">해설/강의와 결정적으로 다른 점 :</span> <span class="field-value">${data.diff_lecture || '-'}</span></div>
+            <div class="field-row"><span class="field-label">지문 접근 방식 차이 :</span> <span class="field-value">${data.diff_approach || '-'}</span></div>
+            <div class="field-row"><span class="field-label">근거 문장 선택 차이 :</span> <span class="field-value">${data.diff_evidence || '-'}</span></div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">4. 선택지 분석 & 5. 다음번 행동 수정</div>
+            <div class="field-row"><span class="field-label">나의 선택과 정답의 차이 :</span> <span class="field-value">${data.diff_choice || '-'}</span></div>
+            <div class="field-row"><span class="field-label">선택한 오답에 끌린 이유 :</span> <span class="field-value">${data.why_attracted || '-'}</span></div>
+            <div class="field-row"><span class="field-label">다음번 접근/수정 수칙 :</span> <span class="field-value">${data.action_plan || '-'}</span></div>
+          </div>
+        </div>
+
+        <!-- PAGE 3: 해석 오류 및 질문 / 피드백 -->
+        <div class="paper-page">
+          <div class="header-top">
+            <div class="header-title">해석 오류 문장 & 학습 질문</div>
+            <div class="check-box">검토 확인 🔳</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">해석 오류가 있었던 문장 기록</div>
+            <div class="field-value" style="white-space: pre-wrap;">${data.error_sentences || '기록 없음'}</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">몰랐던 어휘/표현 정리</div>
             <div class="field-value" style="white-space: pre-wrap;">${data.vocab_list || '기록 없음'}</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">학습 관련 질문 및 기타 요청 사항</div>
+            <div class="field-value" style="white-space: pre-wrap;">${data.questions || '질문 없음'}</div>
           </div>
 
           <!-- 선생님 피드백 입력 칸 -->
@@ -179,7 +199,6 @@
       `;
     }
 
-    // 선생님 피드백 저장 함수
     async function saveTeacherComment() {
       const comment = document.getElementById('teacherCommentInput').value;
       const { error } = await supabaseClient
