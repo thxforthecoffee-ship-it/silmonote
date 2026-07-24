@@ -160,7 +160,7 @@
       </div>
 
       <div class="btn-group">
-        <button type="button" class="btn btn-secondary" id="backBtn" onclick="location.href='main.html'">메인으로 돌아가기</button>
+        <button type="button" class="btn btn-secondary" id="backBtn" onclick="location.href='main.html'">🏠 메인으로 돌아가기</button>
         <button type="button" class="btn btn-primary" id="saveCommentBtn" style="display:none;" onclick="saveTeacherComment()">💾 선생님 피드백 저장하기</button>
       </div>
 
@@ -187,12 +187,12 @@
       const saveCommentBtn = document.getElementById('saveCommentBtn');
 
       if (IS_ADMIN) {
-        backBtn.innerText = '관리자 목록으로 돌아가기';
+        backBtn.innerText = '⬅️ 관리자 목록으로 돌아가기';
         backBtn.onclick = () => location.href = 'admin.html';
         navHomeLink.href = 'admin.html';
         saveCommentBtn.style.display = 'block'; // 저장 버튼 노출
       } else {
-        backBtn.innerText = '메인으로 돌아가기';
+        backBtn.innerText = '🏠 메인으로 돌아가기';
         backBtn.onclick = () => location.href = 'main.html';
         navHomeLink.href = 'main.html';
         saveCommentBtn.style.display = 'none';  // 학생은 저장 버튼 숨김
