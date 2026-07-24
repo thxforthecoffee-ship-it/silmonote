@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실모기록 - 모의고사 분석 리포트</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { background-color: #f4f6f8; margin: 0; padding: 0; color: #333; }
+    
+    header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; }
+    .logo { font-size: 20px; font-weight: bold; color: #111; text-decoration: none; }
+    .nav-links a { text-decoration: none; color: #007bff; font-weight: bold; margin-left: 15px; font-size: 14px; }
+    
+    .container { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
+    
+    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #111; padding-bottom: 15px; margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 800; color: #111; }
+    
+    .section-title { font-size: 15px; font-weight: bold; background: #e7f1ff; color: #0056b3; padding: 8px 12px; border-left: 4px solid #007bff; margin-top: 25px; margin-bottom: 15px; }
+    
+    /* 리포트 스타일 박스 */
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; }
+    .info-item label { font-size: 12px; color: #6c757d; display: block; margin-bottom: 3px; }
+    .info-item span { font-size: 15px; font-weight: bold; color: #212529; }
+
+    .report-box { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .report-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+    .report-row span:first-child { color: #495057; font-weight: 500; }
+    .report-row span:last-child { font-weight: bold; color: #212529; }
+
+    .analysis-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .analysis-table th, .analysis-table td { border: 1px solid #dee2e6; padding: 10px; text-align: center; vertical-align: middle; }
+    .analysis-table th { background: #f1f3f5; font-weight: bold; color: #333; }
+
+    .comment-box { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-height: 100px; resize: vertical; }
+    
+    .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+    .btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; border: none; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="main.html" class="logo">📝 실모기록</a>
+    <div class="nav-links">
+      <a href="main.html">🏠 메인으로</a>
+      <a href="note.html">📝 오답 문항 분석</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      
+      <!-- 상단 헤더 -->
+      <div class="page-header">
+        <div>
+          <span id="examTitle" style="font-size: 20px; font-weight: bold; color: #007bff;">시험명 로딩 중...</span>
+          <div class="page-title" style="margin-top: 5px;">실전 모의고사 영어 분석 리포트</div>
+        </div>
+        <div id="checkTeacherStatus" style="font-weight: bold; color: #28a745;">검토 대기 중 ❑</div>
+      </div>
+
+      <!-- 기본 정보 요약 -->
+      <div class="info-grid">
+        <div class="info-item"><label>학생 이름</label><span id="userName">-</span></div>
+        <div class="info-item"><label>Class 명</label><span id="className">-</span></div>
+        <div class="info-item"><label>체감 난이도</label><span id="perceivedDifficulty">-</span></div>
+        <div class="info-item"><label>목표 등급 / 점수</label><span id="targetScoreInfo">-</span></div>
+        <div class="info-item"><label>실제 원점수 / 등급</label><span id="realScoreInfo">-</span></div>
+        <div class="info-item"><label>마킹 실수 여부</label><span id="markingError">-</span></div>
+      </div>
+
+      <!-- 1. 총평 & 시간 운영 -->
+      <div class="section-title">1. 총평 및 핵심 체크 요약</div>
+      <div class="report-box">
+        <div class="report-row"><span>한 줄 총평</span> <span id="oneLineReview">-</span></div>
+        <div class="report-row"><span>독해와 듣기 병행 성향</span> <span id="listeningParallel">-</span></div>
+        <div class="report-row"><span>어려웠던 문항</span> <span id="hardQuestions">-</span></div>
+        <div class="report-row"><span>듣기 병행 구간 체크</span> <span id="parallelTarget">-</span></div>
+        <div class="report-row"><span>다음 회차 목표</span> <span id="nextGoal" style="color: #007bff;">-</span></div>
+      </div>
+
+      <!-- 2. 유형별 손실 진단 -->
+      <div class="section-title">2. 유형별 손실 진단 결과</div>
+      <table class="analysis-table">
+        <thead>
+          <tr>
+            <th>영역</th>
+            <th>문항 번호</th>
+            <th>오답 문항 번호</th>
+            <th>틀린 이유 분석</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>듣기</strong></td><td>1-17</td><td id="loss_listening_nums">-</td><td id="loss_listening_reason" style="text-align:left;">-</td></tr>
+          <tr><td><strong>대의 파악</strong></td><td>22-24</td><td id="loss_main_nums">-</td><td id="loss_main_reason" style="text-align:left;">-</td></tr>
+          <tr><td><strong>추론 / 함축 / 요약</strong></td><td>21, 31-34, 40</td><td id="loss_infer_nums">-</td><td id="loss_infer_reason" style="text-align:left;">-</td></tr>
+          <tr><td><strong>흐름, 순서 및 삽입</strong></td><td>35-39</td><td id="loss_flow_nums">-</td><td id="loss_flow_reason" style="text-align:left;">-</td></tr>
+          <tr><td><strong>장문</strong></td><td>41-42</td><td id="loss_long_nums">-</td><td id="loss_long_reason" style="text-align:left;">-</td></tr>
+          <tr><td><strong>쉬운 독해</strong></td><td>18-20, 25-28, 43-45</td><td id="loss_easy_nums">-</td><td id="loss_easy_reason" style="text-align:left;">-</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 3. 시간 배분 기록 -->
+      <div class="section-title">3. 시간 배분 및 풀이 순서 기록</div>
+      <p style="font-size: 13px; color: #555; margin-bottom: 10px;">• 풀이 순서: <strong id="testOrder">-</strong></p>
+      <table class="analysis-table">
+        <thead>
+          <tr>
+            <th>구간</th>
+            <th>듣기+독해</th>
+            <th>PAGE 3</th>
+            <th>PAGE 5</th>
+            <th>PAGE 6</th>
+            <th>PAGE 7</th>
+            <th>PAGE 8</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>실제 소요</strong></td>
+            <td id="t_real1">-</td><td id="t_real2">-</td><td id="t_real3">-</td><td id="t_real4">-</td><td id="t_real5">-</td><td id="t_real6">-</td>
+          </tr>
+          <tr>
+            <td><strong>체감 여유</strong></td>
+            <td id="t_feel1">-</td><td id="t_feel2">-</td><td id="t_feel3">-</td><td id="t_feel4">-</td><td id="t_feel5">-</td><td id="t_feel6">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- TEACHER'S COMMENT (관리자가 수정 및 저장 가능) -->
+      <div class="section-title" style="background:#fff0f6; border-color:#d63384; color:#d63384;">TEACHER'S COMMENT (선생님 피드백)</div>
+      <textarea id="teacherComment" class="comment-box" placeholder="선생님 피드백을 입력하고 저장해 주세요."></textarea>
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-secondary" onclick="location.href='main.html'">메인으로 돌아가기</button>
+        <button type="button" class="btn btn-primary" onclick="saveTeacherComment()">💾 선생님 피드백 저장하기</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
+    const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
+    const supabaseClient = window.supabase.createClient(url, key);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const scoreId = urlParams.get('id');
+
+    async function loadReportView() {
+      if (!scoreId) {
+        alert('잘못된 접근입니다.');
+        location.href = 'main.html';
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('score_reports')
+        .select('*')
+        .eq('id', scoreId)
+        .single();
+
+      if (error || !data) {
+        alert('데이터를 불러오지 못했습니다.');
+        return;
+      }
+
+      // 데이터 텍스트 매핑
+      document.getElementById('examTitle').innerText = data.exam_title || '무제 모의고사';
+      document.getElementById('userName').innerText = data.user_name || '-';
+      document.getElementById('className').innerText = data.class_name || '-';
+      document.getElementById('perceivedDifficulty').innerText = data.perceived_difficulty || '-';
+      document.getElementById('targetScoreInfo').innerText = `${data.target_grade || '-'}등급 / ${data.target_score || '-'}점`;
+      document.getElementById('realScoreInfo').innerText = `${data.real_score || '-'}점 / ${data.real_grade || '-'}등급`;
+      document.getElementById('markingError').innerText = data.marking_error || '-';
+
+      document.getElementById('oneLineReview').innerText = data.one_line_review || '-';
+      document.getElementById('listeningParallel').innerText = data.listening_parallel || '-';
+      document.getElementById('hardQuestions').innerText = data.hard_questions || '-';
+      document.getElementById('parallelTarget').innerText = Array.isArray(data.parallel_target) ? data.parallel_target.join(', ') : '-';
+      document.getElementById('nextGoal').innerText = data.next_goal || '-';
+      document.getElementById('testOrder').innerText = data.test_order || '-';
+      document.getElementById('teacherComment').value = data.teacher_comment || '';
+
+      // 유형별 손실 진단 매핑
+      const lossFields = ['listening', 'main', 'infer', 'flow', 'long', 'easy'];
+      lossFields.forEach(f => {
+        if (data[`loss_${f}`]) {
+          document.getElementById(`loss_${f}_nums`).innerText = data[`loss_${f}`].nums || '-';
+          document.getElementById(`loss_${f}_reason`).innerText = data[`loss_${f}`].reason || '-';
+        }
+      });
+
+      // 시간 배분 매핑
+      if (data.time_allocation && Array.isArray(data.time_allocation)) {
+        data.time_allocation.forEach((item, index) => {
+          const idx = index + 1;
+          document.getElementById(`t_real${idx}`).innerText = (item.time || '-') + '분';
+          document.getElementById(`t_feel${idx}`).innerText = item.feel || '-';
+        });
+      }
+    }
+
+    // 선생님 피드백 저장 함수
+    async function saveTeacherComment() {
+      const comment = document.getElementById('teacherComment').value;
+      const { error } = await supabaseClient
+        .from('score_reports')
+        .update({ teacher_comment: comment })
+        .eq('id', scoreId);
+
+      if (error) {
+        alert('피드백 저장 실패: ' + error.message);
+      } else {
+        alert('✅ 선생님 피드백이 저장되었습니다!');
+        location.reload();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadReportView);
+  </script>
+</body>
+</html>

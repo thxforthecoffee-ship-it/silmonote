@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실모기록 - 관리자 대시보드</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { background-color: #f4f6f8; margin: 0; padding: 0; color: #333; }
+    header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; }
+    .logo { font-size: 20px; font-weight: bold; color: #111; text-decoration: none; }
+    .container { max-width: 1100px; margin: 25px auto; padding: 0 20px; }
+    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
+    h2 { margin-top: 0; font-size: 20px; color: #111; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+    th, td { border: 1px solid #dee2e6; padding: 12px; text-align: center; }
+    th { background: #f1f3f5; font-weight: bold; }
+    tr:hover { background: #f8f9fa; cursor: pointer; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="main.html" class="logo">📝 실모기록 [관리자 모드]</a>
+    <div><a href="main.html" style="text-decoration:none; color:#007bff; font-weight:bold;">🏠 메인으로</a></div>
+  </header>
+
+  <div class="container">
+    <!-- 🟡 승인 대기 학생 관리 카드 -->
+    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #ff9800;">
+      <h3 style="margin-top: 0; color: #333; font-size: 18px;">⏳ 승인 대기 중인 학생</h3>
+      <div id="pending-list">
+        <p style="color: #888; font-size: 14px;">조회 중...</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 전체 학생 제출 현황 (모의고사 분석지 & 오답노트)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>제출일자</th>
+            <th>학생 이름</th>
+            <th>반(Class)</th>
+            <th>구분 및 시험명</th>
+            <th>점수 / 상태</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="adminScoreList">
+          <tr><td colspan="6">데이터를 불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
+    const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
+    const supabaseClient = window.supabase.createClient(url, key);
+
+    // 1. 페이지 로드 시 두 목록 모두 불러오기
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAllReports();
+      loadPendingStudents();
+    });
+
+    // 2. 전체 제출 리포트 불러오기
+    async function loadAllReports() {
+      const tbody = document.getElementById('adminScoreList');
+      tbody.innerHTML = '<tr><td colspan="6">데이터를 불러오는 중...</td></tr>';
+
+      try {
+        const { data: scores, error: scoreErr } = await supabaseClient
+          .from('score_reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        let notes = [];
+        try {
+          const res = await supabaseClient
+            .from('notes')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (!res.error) notes = res.data;
+        } catch (e) {
+          console.log('notes 테이블 조회 스킵됨');
+        }
+
+        if (scoreErr) {
+          tbody.innerHTML = '<tr><td colspan="6" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>';
+          return;
+        }
+
+        const allItems = [];
+
+        if (scores) {
+          scores.forEach(s => {
+            allItems.push({
+              id: s.id,
+              type: 'score',
+              title: `[분석지] ${s.exam_title || '모의고사'}`,
+              user_name: s.user_name || '이름 없음',
+              class_name: s.class_name || '-',
+              score_text: `${s.real_score || '-'}점 (${s.real_grade || '-'}등급)`,
+              created_at: s.created_at,
+              viewUrl: `score_view.html?id=${s.id}`
+            });
+          });
+        }
+
+        if (notes) {
+          notes.forEach(n => {
+            allItems.push({
+              id: n.id,
+              type: 'note',
+              title: `[오답노트] ${n.exam_title || '모의고사'} (${n.question_info || ''})`,
+              user_name: n.user_name || '이름 없음',
+              class_name: n.class_name || '-',
+              score_text: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
+              created_at: n.created_at,
+              viewUrl: `view.html?id=${n.id}`
+            });
+          });
+        }
+
+        allItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        if (allItems.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        allItems.forEach(item => {
+          const dateStr = item.created_at ? item.created_at.split('T')[0] : '-';
+          const badgeBg = item.type === 'score' ? '#e7f1ff' : '#e6fcf5';
+          const badgeColor = item.type === 'score' ? '#0056b3' : '#0ca678';
+
+          const tr = document.createElement('tr');
+          tr.onclick = () => { location.href = item.viewUrl; };
+          tr.innerHTML = `
+            <td>${dateStr}</td>
+            <td><strong>${item.user_name}</strong></td>
+            <td>${item.class_name}</td>
+            <td><span class="badge" style="background:${badgeBg}; color:${badgeColor};">${item.title}</span></td>
+            <td>${item.score_text}</td>
+            <td><button style="padding:5px 10px; cursor:pointer; border:1px solid #ccc; background:#fff; border-radius:4px;">상세 보기</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="6" style="color:red;">오류가 발생했습니다.</td></tr>';
+      }
+    }
+
+    // 3. 승인 대기 학생 목록 불러오기
+    async function loadPendingStudents() {
+      const listContainer = document.getElementById('pending-list');
+      if (!listContainer) return;
+
+      const { data: pendingUsers, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('is_approved', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("승인 대기 목록 조회 실패:", error);
+        listContainer.innerHTML = `<p style="color:red; font-size:14px;">목록을 불러오지 못했습니다.</p>`;
+        return;
+      }
+
+      if (!pendingUsers || pendingUsers.length === 0) {
+        listContainer.innerHTML = `<p style="color: #666; font-size: 14px; margin: 0;">현재 승인 대기 중인 학생이 없습니다. 🎉</p>`;
+        return;
+      }
+
+      let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+      pendingUsers.forEach(user => {
+        html += `
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+            <div>
+              <strong style="font-size: 15px; color: #333;">${user.name || '이름 미입력'}</strong> 
+              <span style="color: #777; font-size: 13px; margin-left: 6px;">(${user.email})</span>
+            </div>
+            <button onclick="approveStudent('${user.id}')" 
+                    style="background-color: #4CAF50; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
+              승인하기 🟢
+            </button>
+          </li>
+        `;
+      });
+      html += '</ul>';
+
+      listContainer.innerHTML = html;
+    }
+
+    // 4. [승인하기] 버튼 동작
+    async function approveStudent(userId) {
+      if (!confirm("이 학생을 승인하시겠습니까?")) return;
+
+      const { error } = await supabaseClient
+        .from('profiles')
+        .update({ is_approved: true })
+        .eq('id', userId);
+
+      if (error) {
+        alert("승인 중 오류 발생: " + error.message);
+      } else {
+        alert("승인이 완료되었습니다! 🟢");
+        loadPendingStudents();
+      }
+    }
+  </script>
+</body>
+</html>

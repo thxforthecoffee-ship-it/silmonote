@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>실모기록 - 로그인/회원가입</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 40px; }
+        .container { width: 400px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #45a049; }
+        .btn-secondary { background-color: #2196F3; }
+        .btn-secondary:hover { background-color: #0b7dda; }
+    </style>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>실모기록 📝</h2>
+    
+    <!-- 입력 폼 -->
+    <div class="form-group">
+        <label>이름 (회원가입 시 필수)</label>
+        <input type="text" id="name" placeholder="홍길동">
+    </div>
+    <div class="form-group">
+        <label>이메일</label>
+        <input type="email" id="email" placeholder="example@email.com">
+    </div>
+    <div class="form-group">
+        <label>비밀번호</label>
+        <input type="password" id="password" placeholder="6자리 이상 입력">
+    </div>
+
+    <!-- 버튼 -->
+    <button onclick="handleLogin()" class="btn-secondary">로그인</button>
+    <button onclick="handleSignup()">회원가입 신청</button>
+</div>
+
+<script>
+    const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
+    const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
+    const supabaseClient = window.supabase.createClient(url, key);
+
+    // 1. 회원가입 함수 (profiles 자동 생성)
+    async function handleSignup() {
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (!name || !email || !password) {
+            alert("이름, 이메일, 비밀번호를 모두 입력해 주세요!");
+            return;
+        }
+
+        // Auth 계정 생성
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            alert("회원가입 실패: " + error.message);
+            return;
+        }
+
+        // profiles 테이블에 학생 데이터 자동으로 추가 (is_approved: false)
+        if (data.user) {
+            const { error: profileError } = await supabaseClient
+                .from('profiles')
+                .insert([{ 
+                    id: data.user.id, 
+                    email: email, 
+                    name: name, 
+                    is_approved: false 
+                }]);
+
+            if (profileError) {
+                console.error("프로필 생성 에러:", profileError);
+            }
+        }
+
+        alert("회원가입 신청이 완료되었습니다! 🎉\n선생님의 승인 후 로그인하실 수 있습니다.");
+    }
+
+    // 2. 로그인 함수
+    async function handleLogin() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (!email || !password) {
+            alert("이메일과 비밀번호를 입력해 주세요!");
+            return;
+        }
+
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (authError) {
+            alert("로그인 실패: " + authError.message);
+            return;
+        }
+
+        const userId = authData.user.id;
+        const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('is_approved')
+            .eq('id', userId)
+            .single();
+
+        if (profileError || !profile) {
+            alert("프로필 정보를 가져오는 데 실패했습니다.");
+            return;
+        }
+
+        if (profile.is_approved) {
+            alert("로그인 성공! 🚀");
+            window.location.href = "main.html";
+        } else {
+            alert("⏳ 아직 선생님의 승인을 받지 못했습니다.\n승인 후 다시 시도해 주세요!");
+            await supabaseClient.auth.signOut();
+        }
+    }
+</script>
+
+</body>
+</html>
