@@ -49,9 +49,14 @@
       white-space: pre-wrap;
     }
 
+    /* 하단 버튼 박스 */
+    .bottom-nav { max-width: 900px; margin: 30px auto; text-align: center; }
+    .btn-main-home { background: #6c757d; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-main-home:hover { opacity: 0.9; }
+
     @media print {
       body { background: white; padding: 0; }
-      .nav-bar, .teacher-box button, .save-btn { display: none; }
+      .nav-bar, .teacher-box button, .save-btn, .bottom-nav { display: none !important; }
       .paper-page { box-shadow: none; border: 1px solid #000; margin-bottom: 0; page-break-after: always; }
     }
   </style>
@@ -59,12 +64,17 @@
 <body>
 
   <div class="nav-bar">
-    <a id="backLink" href="main.html">⬅️ 대시보드로 돌아가기</a>
+    <a id="backLink" href="main.html">🏠 메인으로 돌아가기</a>
     <button class="print-btn" onclick="window.print()">🖨️ 이 리포트 인쇄 / PDF 저장</button>
   </div>
 
   <div id="reportContainer">
     <p style="text-align: center; padding: 50px;">데이터를 불러오는 중입니다...</p>
+  </div>
+
+  <!-- 하단 돌아가기 버튼 -->
+  <div class="bottom-nav">
+    <button id="bottomBackBtn" class="btn-main-home" onclick="goBack()">🏠 메인으로 돌아가기</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -80,16 +90,23 @@
     // 오직 URL에 role=admin이 명시되었을 때만 강사 권한 부여
     const IS_ADMIN = (userRole === 'admin');
 
+    function goBack() {
+      location.href = IS_ADMIN ? 'admin.html' : 'main.html';
+    }
+
     async function loadNoteDetail() {
       const container = document.getElementById('reportContainer');
-      
       const backLink = document.getElementById('backLink');
+      const bottomBackBtn = document.getElementById('bottomBackBtn');
+      
       if (IS_ADMIN) {
         backLink.href = 'admin.html';
         backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
+        bottomBackBtn.innerText = '⬅️ 관리자 대시보드로 돌아가기';
       } else {
         backLink.href = 'main.html';
-        backLink.innerText = '⬅️ 대시보드로 돌아가기';
+        backLink.innerText = '🏠 메인으로 돌아가기';
+        bottomBackBtn.innerText = '🏠 메인으로 돌아가기';
       }
 
       if (!noteId) {
@@ -110,7 +127,7 @@
 
       const data = note.content || note;
 
-      // 피드백 데이터 안전 수집 (테이블 컬럼 및 JSON 내부 필드 수색)
+      // 피드백 데이터 안전 수집
       const feedbackText = note.teacher_comment || data.teacher_comment || data.comment || '';
 
       let feedbackHtml = '';

@@ -108,7 +108,7 @@
               class_name: s.class_name || '-',
               score_text: `${s.real_score || '-'}점 (${s.real_grade || '-'}등급)`,
               created_at: s.created_at,
-              viewUrl: `score_view.html?id=${s.id}`
+              viewUrl: `score_view.html?id=${s.id}&role=admin` // 🟢 &role=admin 추가
             });
           });
         }
@@ -123,7 +123,7 @@
               class_name: n.class_name || '-',
               score_text: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
               created_at: n.created_at,
-              viewUrl: `view.html?id=${n.id}`
+              viewUrl: `view.html?id=${n.id}&role=admin` // 🟢 &role=admin 추가
             });
           });
         }
