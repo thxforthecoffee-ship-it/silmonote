@@ -3,62 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>실모기록 - 전체 리포트 상세 보기</title>
+  <title>문항별 심화 오답노트 - 상세보기</title>
   <style>
     * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { background-color: #f8f9fa; margin: 0; padding: 0; color: #333; }
+    body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #111; }
+    .nav-bar { max-width: 900px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; }
+    .nav-bar a { text-decoration: none; color: #007bff; font-weight: bold; }
+    .print-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     
-    header { background: white; padding: 18px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; }
-    .logo { font-size: 22px; font-weight: 800; color: #111; text-decoration: none; }
-    .header-btns { display: flex; gap: 12px; align-items: center; }
+    /* 종이 리포트 스타일 */
+    .paper-page {
+      max-width: 900px;
+      margin: 0 auto 25px auto;
+      background: white;
+      padding: 35px;
+      border: 1px solid #111;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .header-title { font-size: 18px; font-weight: bold; }
+    .check-box { font-size: 14px; font-weight: bold; }
     
-    .btn-pdf { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
-    .btn-pdf:hover { background: #218838; }
+    .section-box { border: 1px solid #333; padding: 18px; margin-bottom: 20px; border-radius: 4px; }
+    .section-title { font-weight: bold; font-size: 15px; margin-bottom: 12px; }
+    
+    .field-row { margin-bottom: 8px; line-height: 1.6; font-size: 14px; }
+    .field-label { font-weight: bold; color: #333; }
+    .field-value { color: #0056b3; font-weight: 500; }
+    
+    /* 오답 사유 체크박스 목록 */
+    .checkbox-list { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; font-size: 13.5px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; color: #555; }
+    .checkbox-item.checked { color: #d9480f; font-weight: bold; }
+    
+    /* 상황 점검 표 */
+    .eval-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .eval-table th, .eval-table td { border: 1px solid #444; padding: 10px; text-align: left; vertical-align: top; }
+    .eval-table th { background: #f8f9fa; text-align: center; }
 
-    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-    .card { background: white; padding: 35px; border-radius: 14px; border: 1px solid #e9ecef; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; }
-    
-    .report-title { font-size: 22px; font-weight: bold; border-bottom: 3px solid #007bff; padding-bottom: 12px; margin-top: 0; margin-bottom: 20px; color: #111; }
-    .section-title { font-size: 16px; font-weight: bold; color: #007bff; margin-top: 25px; margin-bottom: 10px; border-left: 4px solid #007bff; padding-left: 10px; }
-    
-    /* 표 스타일 */
-    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
-    .info-table th { background: #f1f3f5; width: 25%; text-align: left; padding: 10px 14px; border: 1px solid #dee2e6; color: #495057; }
-    .info-table td { padding: 10px 14px; border: 1px solid #dee2e6; color: #212529; }
+    /* 선생님 피드백 서식 */
+    .teacher-box { background: #f1f3f5; border: 2px solid #228be6; padding: 20px; border-radius: 8px; margin-top: 20px; }
+    .teacher-box textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-top: 8px; resize: vertical; }
+    .save-btn { background: #228be6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; margin-top: 8px; }
 
-    .content-box { background: #fafafa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; line-height: 1.6; min-height: 40px; }
-    
-    /* 선생님 피드백 영역 */
-    .teacher-section { background: #fff0f6; border: 1px solid #fcc2d7; padding: 20px; border-radius: 12px; margin-top: 35px; }
-    .teacher-section h3 { margin-top: 0; color: #d63384; font-size: 16px; }
-    textarea { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 14px; resize: vertical; }
-    .btn-save { background: #d63384; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; float: right; }
-    .btn-save:hover { background: #a61e4d; }
-
-    /* 🖨️ 인쇄/PDF 저장용 스타일 */
     @media print {
-      header, .btn-pdf, .btn-save, a { display: none !important; }
-      body { background-color: white !important; }
-      .container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-      .card { border: none !important; box-shadow: none !important; padding: 0 !important; }
-      textarea { border: 1px solid #eee !important; background: transparent !important; }
+      body { background: white; padding: 0; }
+      .nav-bar, .teacher-box button { display: none; }
+      .paper-page { box-shadow: none; border: 1px solid #000; margin-bottom: 0; page-break-after: always; }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <a href="main.html" class="logo">📝 실모기록</a>
-    <div class="header-btns">
-      <button class="btn-pdf" onclick="window.print()">🖨️ 전체 리포트 PDF 저장 / 인쇄</button>
-      <a href="main.html" style="text-decoration:none; color:#007bff; font-weight:bold; font-size:14px;">🏠 메인으로 돌아가기</a>
-    </div>
-  </header>
+  <div class="nav-bar">
+    <a href="admin.html">⬅️ 관리자 대시보드로 돌아가기</a>
+    <button class="print-btn" onclick="window.print()">🖨️ 이 리포트 인쇄 / PDF 저장</button>
+  </div>
 
-  <div class="container">
-    <div class="card" id="detailCard">
-      <p style="text-align:center; color:#868e96;">전체 데이터를 불러오는 중입니다...</p>
-    </div>
+  <div id="reportContainer">
+    <p style="text-align: center; padding: 50px;">데이터를 불러오는 중입니다...</p>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -67,153 +71,130 @@
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
+    // URL에서 id 파라미터 가져오기
     const urlParams = new URLSearchParams(window.location.search);
-    const dataType = urlParams.get('type');
-    const dataId = urlParams.get('id');
+    const noteId = urlParams.get('id');
 
-    async function loadDetail() {
-      const card = document.getElementById('detailCard');
-      const tableName = dataType === 'score' ? 'score_reports' : 'notes';
-
-      const { data, error } = await supabaseClient
-        .from(tableName)
-        .select('*')
-        .eq('id', dataId)
-        .single();
-
-      if (error || !data) {
-        card.innerHTML = '<p style="color:red; text-align:center;">기록을 불러올 수 없습니다.</p>';
+    async function loadNoteDetail() {
+      const container = document.getElementById('reportContainer');
+      if (!noteId) {
+        container.innerHTML = '<p style="color:red; text-align:center;">잘못된 접근입니다. (ID 누락)</p>';
         return;
       }
 
-      // 1. 모의고사 종합 분석지 전체 보기
-      if (dataType === 'score') {
-        card.innerHTML = `
-          <div class="report-title">📊 [실전 모의고사 종합 분석 리포트] ${data.exam_title || ''}</div>
-          
-          <table class="info-table">
-            <tr>
-              <th>학생 이름</th> <td>${data.user_name || '-'}</td>
-              <th>시험 응시일</th> <td>${data.created_at ? data.created_at.split('T')[0] : '-'}</td>
-            </tr>
-            <tr>
-              <th>목표 성적</th> <td>${data.target_score || '-'}점 (${data.target_grade || '-'}등급)</td>
-              <th>실제 성적</th> <td><strong style="color:#007bff;">${data.real_score || '-'}점 (${data.real_grade || '-'}등급)</strong></td>
-            </tr>
-            <tr>
-              <th>체감 난이도</th> <td>${data.perceived_difficulty || '-'}</td>
-              <th>듣기 연계/병행</th> <td>${data.listening_strategy || '-'}</td>
-            </tr>
-          </table>
+      const { data: note, error } = await supabaseClient
+        .from('notes')
+        .select('*')
+        .eq('id', noteId)
+        .single();
 
-          <div class="section-title">⏱️ 구간별 시간 배분 및 풀이 순서</div>
-          <div class="content-box">${data.time_management || '작성된 내용이 없습니다.'}</div>
-
-          <div class="section-title">💥 주요 오답 원인 및 실수 분석</div>
-          <div class="content-box">${data.error_analysis || '작성된 내용이 없습니다.'}</div>
-
-          <div class="section-title">💬 이번 시험 종합 평가 / 한 줄 총평</div>
-          <div class="content-box">${data.one_line_review || '작성된 내용이 없습니다.'}</div>
-
-          <div class="section-title">🎯 다음 회차 피드백 및 개선 목표</div>
-          <div class="content-box">${data.next_goal || '작성된 내용이 없습니다.'}</div>
-
-          ${renderTeacherSection(data.teacher_comment)}
-        `;
-      } 
-     // 2. 심화 오답노트 전체 보기
-      else {
-        // 체크박스 배열이나 객체 데이터를 보기 좋게 문자열로 바꿔주는 헬퍼
-        const formatArray = (arr) => Array.isArray(arr) ? arr.join(', ') : (arr || '-');
-        const formatSentences = (sents) => {
-          if (!Array.isArray(sents)) return '-';
-          return sents.map((s, idx) => s.orig ? `[문장 ${idx+1}]\n- 원문: ${s.orig}\n- 내 해석: ${s.old}\n- 바른 해석: ${s.new}` : '').filter(Boolean).join('\n\n');
-        };
-
-        card.innerHTML = `
-          <div class="report-title">✏️ [심화 오답노트 상세 리포트] ${data.exam_title || ''}</div>
-          
-          <table class="info-table">
-            <tr>
-              <th>시험 날짜</th> <td>${data.test_date || '-'}</td>
-              <th>문항 정보</th> <td><strong>${data.question_info || '-'}</strong></td>
-            </tr>
-            <tr>
-              <th>풀이 시간</th> <td>${data.p1_time || '-'}</td>
-              <th>1차 선택 / 결과</th> <td>${data.p1_choice || '-'} / <strong style="color:${data.p1_result?.includes('정답') ? '#2b8a3e' : '#e03131'};">${data.p1_result || '-'}</strong></td>
-            </tr>
-          </table>
-
-          <div class="section-title">📝 [Page 1] 시험 직후 해설 전 작성</div>
-          <div class="content-box">
-            <strong>- 지문 소재:</strong> ${data.p1_subject || '-'}<br><br>
-            <strong>- 정답 근거 1:</strong> ${data.p1_reason1 || '-'}<br><br>
-            <strong>- 정답 근거 2:</strong> ${data.p1_reason2 || '-'}<br><br>
-            <strong>- 한 줄 요약:</strong> ${data.p1_summary || '-'}<br><br>
-            <strong>- 선택지 반응:</strong> ${Array.isArray(data.p1_options) ? data.p1_options.map((opt, i) => `①②③④⑤"[i+1]: ${opt}`).join(' | ') : '-'}
-          </div>
-
-          <div class="section-title">💡 [Page 2] 강의 및 해설 확인 후</div>
-          <div class="content-box">
-            <strong>- 강의 소재:</strong> ${data.p2_subject || '-'}<br><br>
-            <strong>- 정답 근거 요약:</strong> ${data.p2_correct_reason || '-'}<br><br>
-            <strong>- 지문 이해 단계 오답 사유:</strong> ${formatArray(data.p2_reasons_a)}<br>
-            ${data.p2_strong_exp ? `(강한 표현: ${data.p2_strong_exp})` : ''} ${data.p2_etc_reason_a ? `(기타: ${data.p2_etc_reason_a})` : ''}<br><br>
-            <strong>- 선택지 처리 단계 오답 사유:</strong> ${formatArray(data.p2_reasons_b)}<br><br>
-            <strong>- 몰랐던 어휘/표현:</strong>\n${data.p2_words || '-'}
-          </div>
-
-          <div class="section-title">🔍 [Page 3] 풀이 방식 분석 & 행동 수정</div>
-          <div class="content-box">
-            <strong>- 풀이 방식 차이점:</strong> ${data.p3_diff_main || '-'}<br>
-            <strong>- 접근 방식 차이점:</strong> ${data.p3_diff_approach || '-'}<br>
-            <strong>- 근거 문장 차이점:</strong> ${data.p3_diff_sentence || '-'}<br><br>
-            <strong>- 오답 선택 이유:</strong> ${data.p3_opt_diff1 || '-'} / ${data.p3_opt_diff2 || '-'}<br><br>
-            <strong>- 다음 행동 수정 수칙:</strong> ${data.p3_action_next || '-'}<br>
-            <strong>- 유형별 접근 전략:</strong> ${data.p3_action_type || '-'}<br><br>
-            <strong>- 나의 상황 점검 체크:</strong> ${formatArray(data.p3_checks)} ${data.p3_etc ? `(${data.p3_etc})` : ''}
-          </div>
-
-          <div class="section-title">✏️ [Page 4] 해석 오류 문장 & 선생님 질문</div>
-          <div class="content-box">
-            <strong>- 해석 오류 문장 복기:</strong>\n${formatSentences(data.p4_sentences)}<br><br>
-            <strong>- 학습 질문 및 요청사항:</strong>\n${data.p4_questions || '-'}
-          </div>
-
-          ${renderTeacherSection(data.teacher_comment)}
-        `;
+      if (error || !note) {
+        container.innerHTML = '<p style="color:red; text-align:center;">데이터를 불러오지 못했습니다.</p>';
+        return;
       }
-    }
 
-    function renderTeacherSection(existingComment) {
-      return `
-        <div class="teacher-section">
-          <h3>👩‍🏫 TEACHER'S COMMENT (선생님 피드백)</h3>
-          <textarea id="teacherCommentInput" rows="4" placeholder="학생의 오답 분석에 대한 선생님의 피드백을 입력해 주세요.">${existingComment || ''}</textarea>
-          <button class="btn-save" onclick="saveTeacherComment()">💬 피드백 저장하기</button>
-          <div style="clear:both;"></div>
+      // 작성 데이터 정리
+      const data = note.content || note; // JSON 형태 혹은 단일 컬럼 대응
+
+      container.innerHTML = `
+        <!-- [PAGE 1] 시험 직후 해설 확인 전 작성 -->
+        <div class="paper-page">
+          <div class="header-top">
+            <div>
+              <div class="header-title">시험 직후 해설 확인 전 작성 [독해 문항]</div>
+              <div style="font-size: 13px; color: #666; margin-top: 4px;">자신의 풀이 과정을 최대한 솔직하게 기록합니다.</div>
+            </div>
+            <div class="check-box">학생 이름 : <span class="field-value">${note.user_name || '-'}</span> | 검토 확인 🔳</div>
+          </div>
+
+          <div class="section-box">
+            <div class="field-row"><span class="field-label">날짜 :</span> <span class="field-value">${note.created_at ? note.created_at.split('T')[0] : '-'}</span></div>
+            <div class="field-row"><span class="field-label">모의고사명 :</span> <span class="field-value">${note.exam_title || '-'}</span></div>
+            <div class="field-row"><span class="field-label">문항 번호 및 유형 :</span> <span class="field-value">${note.question_info || '-'}</span></div>
+            <div class="field-row"><span class="field-label">풀이 시간 :</span> <span class="field-value">${data.solve_time || '-'}</span></div>
+            <div class="field-row"><span class="field-label">1차 선택 :</span> <span class="field-value">${data.first_choice || '-'}</span> / <span class="field-label">확신도 :</span> <span class="field-value">${data.confidence || '-'}%</span> / <span class="field-label">정답 여부 :</span> <span class="field-value">${data.is_correct || '-'}</span></div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">1. 지문 중심 소재 :</div>
+            <div class="field-value" style="white-space: pre-wrap;">${data.topic || '기록 없음'}</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">2. 내가 선택한 정답의 근거 기록</div>
+            <div class="field-row"><span class="field-label">2-1. 정답 근거 문장 1 :</span></div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence1 || '기록 없음'}</div>
+            
+            <div class="field-row" style="margin-top:10px;"><span class="field-label">2-2. 정답 근거 문장 2 :</span></div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence2 || '기록 없음'}</div>
+
+            <div class="field-row" style="margin-top:10px;"><span class="field-label">2-3. 한 줄 요약 (중심 내용) :</span></div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.summary || '기록 없음'}</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">선택지 해석 및 근거 (맞는 듯 보였던 이유 / 버린 이유)</div>
+            <div class="field-row">① <span class="field-value">${data.option1 || '-'}</span></div>
+            <div class="field-row">② <span class="field-value">${data.option2 || '-'}</span></div>
+            <div class="field-row">③ <span class="field-value">${data.option3 || '-'}</span></div>
+            <div class="field-row">④ <span class="field-value">${data.option4 || '-'}</span></div>
+            <div class="field-row">⑤ <span class="field-value">${data.option5 || '-'}</span></div>
+          </div>
+        </div>
+
+        <!-- [PAGE 2] 강의 및 해설 확인 후 기록 -->
+        <div class="paper-page">
+          <div class="header-top">
+            <div class="header-title">강의 및 해설 확인 후 기록</div>
+            <div class="check-box">검토 확인 🔳</div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">1. 해설 및 강의 내용 핵심</div>
+            <div class="field-row"><span class="field-label">1) 소재 :</span> <span class="field-value">${data.lecture_topic || '-'}</span></div>
+            <div class="field-row"><span class="field-label">2) 정답 근거 :</span> <span class="field-value">${data.lecture_evidence || '-'}</span></div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">2. 주요 오답 사유 및 분석 결과</div>
+            <div class="field-row"><span class="field-label">체크된 오답 원인 :</span></div>
+            <div class="field-value" style="padding:8px; background:#f8f9fa; border-radius:4px; margin-top:5px;">
+              ${data.wrong_reasons ? data.wrong_reasons.join(', ') : '선택된 항목 없음'}
+            </div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-title">몰랐던 어휘 / 표현 정리</div>
+            <div class="field-value" style="white-space: pre-wrap;">${data.vocab_list || '기록 없음'}</div>
+          </div>
+
+          <!-- 선생님 피드백 입력 칸 -->
+          <div class="teacher-box">
+            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백 작성)</div>
+            <textarea id="teacherCommentInput" placeholder="학생에게 전할 피드백이나 코멘트를 입력하세요...">${note.teacher_comment || ''}</textarea>
+            <button class="save-btn" onclick="saveTeacherComment()">피드백 저장하기 💾</button>
+            <div style="clear:both;"></div>
+          </div>
         </div>
       `;
     }
 
+    // 선생님 피드백 저장 함수
     async function saveTeacherComment() {
       const comment = document.getElementById('teacherCommentInput').value;
-      const tableName = dataType === 'score' ? 'score_reports' : 'notes';
-
       const { error } = await supabaseClient
-        .from(tableName)
+        .from('notes')
         .update({ teacher_comment: comment })
-        .eq('id', dataId);
+        .eq('id', noteId);
 
       if (error) {
         alert('피드백 저장 실패: ' + error.message);
       } else {
-        alert('🎉 피드백이 성공적으로 저장되었습니다!');
-        location.reload();
+        alert('피드백이 성공적으로 저장되었습니다! 🟢');
       }
     }
 
-    window.addEventListener('DOMContentLoaded', loadDetail);
+    window.addEventListener('DOMContentLoaded', loadNoteDetail);
   </script>
 </body>
 </html>
