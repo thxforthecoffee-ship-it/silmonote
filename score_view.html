@@ -36,11 +36,31 @@
 
     .comment-box { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-height: 100px; resize: vertical; }
     
+    /* 학생용 읽기 전용 피드백 전용 스타일 */
+    .student-comment-box {
+      width: 100%;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border: 1px solid #74c0fc;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1c7ed6;
+      font-weight: 600;
+      white-space: pre-wrap;
+    }
+
     .btn-group { display: flex; gap: 10px; margin-top: 25px; }
     .btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; border: none; }
     .btn-primary { background: #007bff; color: white; }
     .btn-secondary { background: #6c757d; color: white; }
     .btn:hover { opacity: 0.9; }
+
+    @media print {
+      header, .btn-group { display: none !important; }
+      body { background: white; }
+      .card { box-shadow: none; border: none; padding: 0; }
+    }
   </style>
 </head>
 <body>
@@ -48,7 +68,7 @@
   <header>
     <a href="main.html" class="logo">📝 실모기록</a>
     <div class="nav-links">
-      <a href="main.html">🏠 메인으로</a>
+      <a id="navHomeLink" href="main.html">🏠 메인으로</a>
       <a href="note.html">📝 오답 문항 분석</a>
     </div>
   </header>
@@ -133,13 +153,15 @@
         </tbody>
       </table>
 
-      <!-- TEACHER'S COMMENT (관리자가 수정 및 저장 가능) -->
+      <!-- TEACHER'S COMMENT (권한별 동적 노출 영역) -->
       <div class="section-title" style="background:#fff0f6; border-color:#d63384; color:#d63384;">TEACHER'S COMMENT (선생님 피드백)</div>
-      <textarea id="teacherComment" class="comment-box" placeholder="선생님 피드백을 입력하고 저장해 주세요."></textarea>
+      <div id="commentContainer">
+        <!-- 스크립트로 동적 생성됩니다 -->
+      </div>
 
       <div class="btn-group">
-        <button type="button" class="btn btn-secondary" onclick="location.href='main.html'">메인으로 돌아가기</button>
-        <button type="button" class="btn btn-primary" onclick="saveTeacherComment()">💾 선생님 피드백 저장하기</button>
+        <button type="button" class="btn btn-secondary" id="backBtn" onclick="location.href='main.html'">메인으로 돌아가기</button>
+        <button type="button" class="btn btn-primary" id="saveCommentBtn" style="display:none;" onclick="saveTeacherComment()">💾 선생님 피드백 저장하기</button>
       </div>
 
     </div>
@@ -153,11 +175,32 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const scoreId = urlParams.get('id');
+    const userRole = urlParams.get('role');
+
+    // 강사 권한 체크 (URL에 role=admin이 있을 때만 강사)
+    const IS_ADMIN = (userRole === 'admin');
 
     async function loadReportView() {
+      // 권한별 네비게이션/버튼 UI 분기
+      const backBtn = document.getElementById('backBtn');
+      const navHomeLink = document.getElementById('navHomeLink');
+      const saveCommentBtn = document.getElementById('saveCommentBtn');
+
+      if (IS_ADMIN) {
+        backBtn.innerText = '관리자 목록으로 돌아가기';
+        backBtn.onclick = () => location.href = 'admin.html';
+        navHomeLink.href = 'admin.html';
+        saveCommentBtn.style.display = 'block'; // 저장 버튼 노출
+      } else {
+        backBtn.innerText = '메인으로 돌아가기';
+        backBtn.onclick = () => location.href = 'main.html';
+        navHomeLink.href = 'main.html';
+        saveCommentBtn.style.display = 'none';  // 학생은 저장 버튼 숨김
+      }
+
       if (!scoreId) {
         alert('잘못된 접근입니다.');
-        location.href = 'main.html';
+        location.href = IS_ADMIN ? 'admin.html' : 'main.html';
         return;
       }
 
@@ -172,7 +215,7 @@
         return;
       }
 
-      // 데이터 텍스트 매핑
+      // 기본 데이터 텍스트 매핑
       document.getElementById('examTitle').innerText = data.exam_title || '무제 모의고사';
       document.getElementById('userName').innerText = data.user_name || '-';
       document.getElementById('className').innerText = data.class_name || '-';
@@ -187,7 +230,32 @@
       document.getElementById('parallelTarget').innerText = Array.isArray(data.parallel_target) ? data.parallel_target.join(', ') : '-';
       document.getElementById('nextGoal').innerText = data.next_goal || '-';
       document.getElementById('testOrder').innerText = data.test_order || '-';
-      document.getElementById('teacherComment').value = data.teacher_comment || '';
+
+      // 피드백 데이터
+      const feedbackText = data.teacher_comment || '';
+
+      // 검토 상태 표시
+      const checkStatusEl = document.getElementById('checkTeacherStatus');
+      if (feedbackText.trim() !== '') {
+        checkStatusEl.innerText = '검토 완료 🟢';
+        checkStatusEl.style.color = '#28a745';
+      } else {
+        checkStatusEl.innerText = '검토 대기 중 🟡';
+        checkStatusEl.style.color = '#ff9800';
+      }
+
+      // 권한별 피드백 DOM 삽입
+      const commentContainer = document.getElementById('commentContainer');
+      if (IS_ADMIN) {
+        commentContainer.innerHTML = `
+          <textarea id="teacherComment" class="comment-box" placeholder="선생님 피드백을 입력하고 저장해 주세요.">${feedbackText}</textarea>
+        `;
+      } else {
+        const displayText = feedbackText.trim() !== '' ? feedbackText : '아직 작성된 선생님 피드백이 없습니다.';
+        commentContainer.innerHTML = `
+          <div class="student-comment-box">${displayText}</div>
+        `;
+      }
 
       // 유형별 손실 진단 매핑
       const lossFields = ['listening', 'main', 'infer', 'flow', 'long', 'easy'];
@@ -202,15 +270,22 @@
       if (data.time_allocation && Array.isArray(data.time_allocation)) {
         data.time_allocation.forEach((item, index) => {
           const idx = index + 1;
-          document.getElementById(`t_real${idx}`).innerText = (item.time || '-') + '분';
-          document.getElementById(`t_feel${idx}`).innerText = item.feel || '-';
+          const targetReal = document.getElementById(`t_real${idx}`);
+          const targetFeel = document.getElementById(`t_feel${idx}`);
+          if (targetReal) targetReal.innerText = (item.time || '-') + '분';
+          if (targetFeel) targetFeel.innerText = item.feel || '-';
         });
       }
     }
 
-    // 선생님 피드백 저장 함수
+    // 선생님 피드백 저장 함수 (관리자 전용)
     async function saveTeacherComment() {
-      const comment = document.getElementById('teacherComment').value;
+      if (!IS_ADMIN) return;
+
+      const commentInput = document.getElementById('teacherComment');
+      if (!commentInput) return;
+
+      const comment = commentInput.value;
       const { error } = await supabaseClient
         .from('score_reports')
         .update({ teacher_comment: comment })
@@ -219,7 +294,7 @@
       if (error) {
         alert('피드백 저장 실패: ' + error.message);
       } else {
-        alert('✅ 선생님 피드백이 저장되었습니다!');
+        alert('✅ 선생님 피드백이 성공적으로 저장되었습니다!');
         location.reload();
       }
     }

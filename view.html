@@ -29,18 +29,29 @@
     .field-row { margin-bottom: 8px; line-height: 1.6; font-size: 14px; }
     .field-label { font-weight: bold; color: #333; }
     .field-value { color: #0056b3; font-weight: 500; }
-    
-    .eval-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    .eval-table th, .eval-table td { border: 1px solid #444; padding: 8px; text-align: left; vertical-align: top; }
-    .eval-table th { background: #f8f9fa; text-align: center; font-weight: bold; }
 
+    /* 피드백 박스 스타일 */
     .teacher-box { background: #f1f3f5; border: 2px solid #228be6; padding: 20px; border-radius: 8px; margin-top: 20px; }
     .teacher-box textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-top: 8px; resize: vertical; }
     .save-btn { background: #228be6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; margin-top: 8px; }
 
+    /* 학생용 읽기 전용 피드백 스타일 */
+    .student-feedback-view {
+      background: #ffffff;
+      border: 1px solid #74c0fc;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1c7ed6;
+      font-weight: 600;
+      white-space: pre-wrap;
+    }
+
     @media print {
       body { background: white; padding: 0; }
-      .nav-bar, .teacher-box button { display: none; }
+      .nav-bar, .teacher-box button, .save-btn { display: none; }
       .paper-page { box-shadow: none; border: 1px solid #000; margin-bottom: 0; page-break-after: always; }
     }
   </style>
@@ -48,7 +59,7 @@
 <body>
 
   <div class="nav-bar">
-    <a href="admin.html">⬅️ 관리자 대시보드로 돌아가기</a>
+    <a id="backLink" href="main.html">⬅️ 대시보드로 돌아가기</a>
     <button class="print-btn" onclick="window.print()">🖨️ 이 리포트 인쇄 / PDF 저장</button>
   </div>
 
@@ -64,9 +75,23 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
+    const userRole = urlParams.get('role'); 
+
+    // 오직 URL에 role=admin이 명시되었을 때만 강사 권한 부여
+    const IS_ADMIN = (userRole === 'admin');
 
     async function loadNoteDetail() {
       const container = document.getElementById('reportContainer');
+      
+      const backLink = document.getElementById('backLink');
+      if (IS_ADMIN) {
+        backLink.href = 'admin.html';
+        backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
+      } else {
+        backLink.href = 'main.html';
+        backLink.innerText = '⬅️ 대시보드로 돌아가기';
+      }
+
       if (!noteId) {
         container.innerHTML = '<p style="color:red; text-align:center;">잘못된 접근입니다. (ID 누락)</p>';
         return;
@@ -84,6 +109,29 @@
       }
 
       const data = note.content || note;
+
+      // 피드백 데이터 안전 수집 (테이블 컬럼 및 JSON 내부 필드 수색)
+      const feedbackText = note.teacher_comment || data.teacher_comment || data.comment || '';
+
+      let feedbackHtml = '';
+      if (IS_ADMIN) {
+        feedbackHtml = `
+          <div class="teacher-box">
+            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백 작성)</div>
+            <textarea id="teacherCommentInput" placeholder="학생에게 전할 피드백이나 코멘트를 입력하세요...">${feedbackText}</textarea>
+            <button class="save-btn" onclick="saveTeacherComment()">피드백 저장하기 💾</button>
+            <div style="clear:both;"></div>
+          </div>
+        `;
+      } else {
+        const displayComment = feedbackText.trim() !== '' ? feedbackText : '아직 작성된 선생님 피드백이 없습니다.';
+        feedbackHtml = `
+          <div class="teacher-box">
+            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백)</div>
+            <div class="student-feedback-view">${displayComment}</div>
+          </div>
+        `;
+      }
 
       container.innerHTML = `
         <!-- PAGE 1: 시험 직후 해설 확인 전 -->
@@ -147,7 +195,7 @@
           <div class="section-box">
             <div class="section-title">2. 주요 오답 사유 (체크 항목)</div>
             <div class="field-value" style="padding:10px; background:#f8f9fa; border-radius:4px;">
-              ${data.wrong_reasons ? data.wrong_reasons.join('<br>• ') : '선택된 항목 없음'}
+              ${data.wrong_reasons ? (Array.isArray(data.wrong_reasons) ? data.wrong_reasons.join('<br>• ') : data.wrong_reasons) : '선택된 항목 없음'}
             </div>
           </div>
 
@@ -188,18 +236,13 @@
             <div class="field-value" style="white-space: pre-wrap;">${data.questions || '질문 없음'}</div>
           </div>
 
-          <!-- 선생님 피드백 입력 칸 -->
-          <div class="teacher-box">
-            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백 작성)</div>
-            <textarea id="teacherCommentInput" placeholder="학생에게 전할 피드백이나 코멘트를 입력하세요...">${note.teacher_comment || ''}</textarea>
-            <button class="save-btn" onclick="saveTeacherComment()">피드백 저장하기 💾</button>
-            <div style="clear:both;"></div>
-          </div>
+          ${feedbackHtml}
         </div>
       `;
     }
 
     async function saveTeacherComment() {
+      if (!IS_ADMIN) return;
       const comment = document.getElementById('teacherCommentInput').value;
       const { error } = await supabaseClient
         .from('notes')
