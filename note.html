@@ -124,7 +124,7 @@
         <input type="text" id="p1_opt5" placeholder="⑤" style="margin-top:10px;">
       </div>
 
-      <!-- ================= PAGE 2 (원본 체크리스트 100% 복원) ================= -->
+      <!-- ================= PAGE 2 ================= -->
       <div id="page2" class="card tab-content">
         <h3>💡 [Page 2] 강의 및 해설 확인 후 기록</h3>
         
@@ -173,7 +173,7 @@
         </div>
       </div>
 
-      <!-- ================= PAGE 3 (원본 테이블 100% 복원) ================= -->
+      <!-- ================= PAGE 3 ================= -->
       <div id="page3" class="card tab-content">
         <h3>🔍 [Page 3] 나의 풀이 방식 분석 & 행동 수정</h3>
 
@@ -263,7 +263,7 @@
         <textarea id="p4_questions" rows="3" placeholder="1. &#10;2. "></textarea>
 
         <div class="section-title" style="border-color:#dc3545; color:#dc3545;">TEACHER’S COMMENT</div>
-        <textarea id="p4_comment" rows="2" placeholder="선생님 피드백란 (학생 입력 불가)" readonly style="background:#f8f9fa; cursor:not-allowed;"></textarea>
+        <textarea id="p4_comment" rows="3" placeholder="선생님 피드백란 (학생 입력 불가)" readonly style="background:#f8f9fa; cursor:not-allowed; border:2px solid #dc3545; font-weight:bold; color:#333;"></textarea>
 
         <button type="submit" class="btn-submit">🎉 4페이지 심화 오답노트 제출하기</button>
       </div>
@@ -292,19 +292,16 @@
   const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
   const supabaseClient = window.supabase.createClient(url, key);
 
-  // 56번 줄의 onsubmit="saveDeepNote(event)" 와 100% 일치하는 제출 함수
+  // 데이터 저장/수정 함수
   async function saveDeepNote(e) {
     e.preventDefault();
 
-    // 현재 로그인 유저 정보
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // 체크박스 다중 수집 함수
     const getCheckedValues = (name) => {
       return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
     };
 
-    // 화면에 작성된 4페이지 전체 데이터 수집
     const noteData = {
       user_id: user ? user.id : null,
       test_date: document.getElementById('testDate')?.value || '',
@@ -356,16 +353,9 @@
       p4_questions: document.getElementById('p4_questions')?.value || ''
     };
 
-   // 🔗 URL에서 id 파라미터 확인
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
 
-    // 선생님 피드백란이 HTML에 있다면 DB 전송 데이터에 추가
-    if (document.getElementById('teacherComment')) {
-      noteData.teacher_comment = document.getElementById('teacherComment').value;
-    }
-
-    // Supabase 'notes' 테이블에 전송 (신규면 insert, 기존 기록이면 update)
     let result;
     if (noteId) {
       result = await supabaseClient.from('notes').update(noteData).eq('id', noteId);
@@ -376,17 +366,12 @@
     if (result.error) {
       alert('저장 중 오류가 발생했습니다: ' + result.error.message);
     } else {
-      alert('🎉 4페이지 심화 오답노트가 성공적으로 저장(수정)되었습니다!');
-      window.location.href = "main.html";
-    }if (result.error) {
-      alert('저장 중 오류가 발생했습니다: ' + result.error.message);
-    } else {
-      alert('🎉 4페이지 심화 오답노트가 성공적으로 저장(수정)되었습니다!');
+      alert('🎉 4페이지 심화 오답노트가 성공적으로 저장되었습니다!');
       window.location.href = "main.html";
     }
-  } // <-- 381번 줄에 있는 기존 함수의 닫는 괄호
+  }
 
-  // 👇 [여기에 그대로 붙여넣기 하시면 됩니다!]
+  // 데이터 불러오기 함수 (선생님 피드백 완벽 매핑)
   async function loadNoteData() {
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
@@ -400,26 +385,56 @@
       
     if (error || !data) return;
 
-    const fields = [
-      'test_date', 'exam_title', 'question_info', 
-      'p1_time', 'p1_choice', 'p1_correct', 'p1_subject', 'p1_summary', 
-      'p2_structure', 'p3_trap', 'p3_etc', 'p4_rules', 'p4_questions'
-    ];
-    
-    fields.forEach(field => {
-      const camelCaseId = field.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      const el = document.getElementById(field) || document.getElementById(camelCaseId);
-      if (el && data[field]) el.value = data[field];
-    });
+    // 단일 input 및 textarea 자동 채우기
+    if (data.test_date) document.getElementById('testDate').value = data.test_date;
+    if (data.exam_title) document.getElementById('examTitle').value = data.exam_title;
+    if (data.question_info) document.getElementById('questionInfo').value = data.question_info;
 
-    if (document.getElementById('teacherComment') && data.teacher_comment) {
-      document.getElementById('teacherComment').value = data.teacher_comment;
+    if (data.p1_time) document.getElementById('p1_time').value = data.p1_time;
+    if (data.p1_choice) document.getElementById('p1_choice').value = data.p1_choice;
+    if (data.p1_result) document.getElementById('p1_result').value = data.p1_result;
+    if (data.p1_subject) document.getElementById('p1_subject').value = data.p1_subject;
+    if (data.p1_reason1) document.getElementById('p1_reason1').value = data.p1_reason1;
+    if (data.p1_reason2) document.getElementById('p1_reason2').value = data.p1_reason2;
+    if (data.p1_summary) document.getElementById('p1_summary').value = data.p1_summary;
+
+    if (data.p1_options && Array.isArray(data.p1_options)) {
+      if (data.p1_options[0]) document.getElementById('p1_opt1').value = data.p1_options[0];
+      if (data.p1_options[1]) document.getElementById('p1_opt2').value = data.p1_options[1];
+      if (data.p1_options[2]) document.getElementById('p1_opt3').value = data.p1_options[2];
+      if (data.p1_options[3]) document.getElementById('p1_opt4').value = data.p1_options[3];
+      if (data.p1_options[4]) document.getElementById('p1_opt5').value = data.p1_options[4];
+    }
+
+    if (data.p2_subject) document.getElementById('p2_subject').value = data.p2_subject;
+    if (data.p2_correct_reason) document.getElementById('p2_correctReason').value = data.p2_correct_reason;
+    if (data.p2_strong_exp) document.getElementById('p2_strongExp').value = data.p2_strong_exp;
+    if (data.p2_etc_reason_a) document.getElementById('p2_etcReasonA').value = data.p2_etc_reason_a;
+    if (data.p2_words) document.getElementById('p2_words1').value = data.p2_words;
+
+    if (data.p3_diff_main) document.getElementById('p3_diffMain').value = data.p3_diff_main;
+    if (data.p3_diff_approach) document.getElementById('p3_diffApproach').value = data.p3_diff_approach;
+    if (data.p3_diff_sentence) document.getElementById('p3_diffSentence').value = data.p3_diff_sentence;
+    if (data.p3_opt_diff1) document.getElementById('p3_optDiff1').value = data.p3_opt_diff1;
+    if (data.p3_opt_diff2) document.getElementById('p3_optDiff2').value = data.p3_opt_diff2;
+    if (data.p3_action_next) document.getElementById('p3_actionNext').value = data.p3_action_next;
+    if (data.p3_action_type) document.getElementById('p3_actionType').value = data.p3_action_type;
+    if (data.p3_etc) document.getElementById('p3_etc').value = data.p3_etc;
+
+    if (data.p4_questions) document.getElementById('p4_questions').value = data.p4_questions;
+
+    // ⭐ [핵심] 선생님 피드백(teacher_comment)을 p4_comment 창에 연결!
+    const commentBox = document.getElementById('p4_comment');
+    if (commentBox) {
+      if (data.teacher_comment) {
+        commentBox.value = data.teacher_comment;
+      } else {
+        commentBox.value = "아직 선생님 피드백이 등록되지 않았습니다.";
+      }
     }
   }
 
   window.addEventListener('DOMContentLoaded', loadNoteData);
-
-</script> <!-- 382번 줄 -->
 </script>
 </body>
 </html>
