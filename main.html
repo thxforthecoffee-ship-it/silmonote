@@ -39,11 +39,10 @@
     .recent-date { color: #adb5bd; font-size: 13px; }
     .loading-text { text-align: center; color: #868e96; padding: 20px; font-size: 14px; }
 
-    /* 📱 모바일 화면 대응 CSS 추가 */
     @media (max-width: 768px) {
       header { padding: 15px 20px; flex-direction: column; align-items: flex-start; gap: 5px; }
       .container { margin: 20px auto; }
-      .grid { grid-template-columns: 1fr; } /* 카드가 1줄로 정렬됨 */
+      .grid { grid-template-columns: 1fr; }
       .recent-link { flex-direction: column; align-items: flex-start; gap: 5px; }
     }
   </style>
@@ -55,13 +54,8 @@
         <a href="main.html" class="logo">실모기록</a>
         <span class="subtitle">수능 영어 소수정예 대시보드</span>
     </div>
-    <!-- 우측 로그인 / 사용자 정보 영역 -->
     <div id="auth-area" style="display: flex; align-items: center; gap: 15px;">
-        <!-- 로그인 전 상태일 때 -->
-        <!-- <a href="index.html" style="text-decoration: none; padding: 8px 16px; background: #007bff; color: white; border-radius: 6px; font-size: 14px; font-weight: bold;">로그인</a> -->
-        
-        <!-- 로그인 후 상태일 때 (예시) -->
-        <span style="font-size: 14px; color: #555; font-weight: 500;">**홍길동** 학생</span>
+        <span style="font-size: 14px; color: #555; font-weight: 500;" id="user-name-display">학생</span>
         <button onclick="handleLogout()" style="padding: 6px 12px; background: #f1f3f5; color: #333; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500;">로그아웃</button>
     </div>
 </header>
@@ -96,7 +90,6 @@
     </div>
   </div>
 
-  <!-- Supabase SDK 및 스크립트 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
@@ -105,68 +98,74 @@
 
     async function loadRecentActivity() {
       const recentList = document.getElementById('recentList');
-  const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
 
-  if (!user) {
-    location.href = "app.html";
-    return;
-  }
+      if (!user) {
+        location.href = "index.html";
+        return;
+      }
+
       try {
         // 1. 오답노트 (notes) 불러오기
-        const { data: notes, error: notesErr } = await supabaseClient
-          .from('notes')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        let notesQuery = supabaseClient.from('notes').select('*').order('created_at', { ascending: false }).limit(10);
+        // user_id가 존재하는 경우 해당 유저건만 가져오되, 전체 조회도 지원되도록 처리
+        const { data: notes, error: notesErr } = await notesQuery;
 
         // 2. 분석지 (score_reports) 불러오기
         const { data: scores, error: scoresErr } = await supabaseClient
           .from('score_reports')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(10);
 
         if (notesErr || scoresErr) {
+          console.error(notesErr || scoresErr);
           recentList.innerHTML = '<li class="loading-text" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</li>';
           return;
         }
 
         const allItems = [];
 
-        // 오답노트 가공
+        // 오답노트 가공 (선생님 피드백 여부 반영)
         if (notes) {
           notes.forEach(n => {
-            allItems.push({
-              id: n.id,
-              type: 'note',
-              title: `[심화 오답노트] ${n.exam_title || '모의고사'} ${n.question_info || ''}`,
-              badge: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
-              date: n.test_date || (n.created_at ? n.created_at.split('T')[0] : '-'),
-              created_at: n.created_at
-            });
+            // 유저 아이디가 매칭되거나 유저 정보가 따로 없을 때 본인 데이터로 표출
+            if (!n.user_id || n.user_id === user.id) {
+              allItems.push({
+                id: n.id,
+                type: 'note',
+                title: `[심화 오답노트] ${n.exam_title || '모의고사'} ${n.question_info || ''}`,
+                badge: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
+                date: n.created_at ? n.created_at.split('T')[0] : '-',
+                created_at: n.created_at,
+                // ⭐ 오답노트는 view.html로 연결하여 피드백 확인 가능하도록 설정 ⭐
+                viewUrl: `view.html?id=${n.id}`
+              });
+            }
           });
         }
 
         // 분석지 가공
         if (scores) {
           scores.forEach(s => {
-            const scoreText = s.real_score ? `${s.real_score}점` : '';
-            const gradeText = s.real_grade ? ` (${s.real_grade}등급)` : '';
-            const badgeText = (scoreText || gradeText) ? `${scoreText}${gradeText}` : '제출 완료 🟡';
+            if (!s.user_id || s.user_id === user.id) {
+              const scoreText = s.real_score ? `${s.real_score}점` : '';
+              const gradeText = s.real_grade ? ` (${s.real_grade}등급)` : '';
+              const badgeText = (scoreText || gradeText) ? `${scoreText}${gradeText}` : '제출 완료 🟡';
 
-            allItems.push({
-              id: s.id,
-              type: 'score',
-              title: `[모의고사 분석지] ${s.exam_title || '모의고사'}`,
-              badge: badgeText,
-              date: s.created_at ? s.created_at.split('T')[0] : '-',
-              created_at: s.created_at
-            });
+              allItems.push({
+                id: s.id,
+                type: 'score',
+                title: `[모의고사 분석지] ${s.exam_title || '모의고사'}`,
+                badge: badgeText,
+                date: s.created_at ? s.created_at.split('T')[0] : '-',
+                created_at: s.created_at,
+                viewUrl: `score_view.html?id=${s.id}`
+              });
+            }
           });
         }
 
-        // 최신순 정렬
         allItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         if (allItems.length === 0) {
@@ -174,18 +173,14 @@
           return;
         }
 
-        // 화면 출력 (클릭 시 작성 페이지로 이동하여 전체 내용 복원)
         recentList.innerHTML = '';
         allItems.slice(0, 5).forEach(item => {
           const li = document.createElement('li');
           li.className = 'recent-item';
-          const badgeColor = item.type === 'score' ? '#007bff' : '#28a745';
-
-          // 분석지는 score_view.html, 오답노트는 note.html로 이동
-const targetPage = item.type === 'score' ? 'score_view.html' : 'note.html';
+          const badgeColor = item.badge.includes('🟢') ? '#28a745' : (item.type === 'score' ? '#007bff' : '#ff9800');
 
           li.innerHTML = `
-            <a href="${targetPage}?id=${item.id}" class="recent-link">
+            <a href="${item.viewUrl}" class="recent-link">
               <div>
                 <span class="recent-title">${item.title}</span>
                 <span style="color:${badgeColor}; margin-left:10px; font-weight:bold; font-size:13px;">${item.badge}</span>
@@ -202,12 +197,13 @@ const targetPage = item.type === 'score' ? 'score_view.html' : 'note.html';
       }
     }
 
-    window.addEventListener('DOMContentLoaded', loadRecentActivity);
-  </script><script>
-    function handleLogout() {
-        alert('로그아웃 되었습니다.');
-        location.href = 'app.html';
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      alert('로그아웃 되었습니다.');
+      location.href = 'index.html';
     }
-</script>
+
+    window.addEventListener('DOMContentLoaded', loadRecentActivity);
+  </script>
 </body>
 </html>
