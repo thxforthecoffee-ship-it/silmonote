@@ -137,9 +137,22 @@
         return;
       }
 
-      const data = note.content || note;
+      // 🟢 [핵심 수정] note 자체 데이터와 content 내부 데이터를 안전하게 병합합니다.
+      let data = { ...note };
+      if (note.content) {
+        if (typeof note.content === 'object' && Object.keys(note.content).length > 0) {
+          data = { ...note, ...note.content };
+        } else if (typeof note.content === 'string' && note.content.trim() !== '') {
+          try {
+            const parsed = JSON.parse(note.content);
+            if (parsed && typeof parsed === 'object') {
+              data = { ...note, ...parsed };
+            }
+          } catch(e) {}
+        }
+      }
 
-      // 🟢 note.html에서 구한 필드와 호환되도록 데이터 매핑
+      // PAGE 1 항목 매핑
       const solveTime = data.p1_time || data.solve_time || '-';
       const firstChoice = data.p1_choice || data.first_choice || '-';
       const isCorrect = data.p1_result || data.is_correct || '-';
@@ -150,11 +163,11 @@
 
       // 선택지
       const opts = data.p1_options || [];
-      const opt1 = opts[0] || data.option1 || '-';
-      const opt2 = opts[1] || data.option2 || '-';
-      const opt3 = opts[2] || data.option3 || '-';
-      const opt4 = opts[3] || data.option4 || '-';
-      const opt5 = opts[4] || data.option5 || '-';
+      const opt1 = opts[0] || data.option1 || data.p1_opt1 || '-';
+      const opt2 = opts[1] || data.option2 || data.p1_opt2 || '-';
+      const opt3 = opts[2] || data.option3 || data.p1_opt3 || '-';
+      const opt4 = opts[3] || data.option4 || data.p1_opt4 || '-';
+      const opt5 = opts[4] || data.option5 || data.p1_opt5 || '-';
 
       // PAGE 2
       const lectureTopic = data.p2_subject || data.lecture_topic || '-';
