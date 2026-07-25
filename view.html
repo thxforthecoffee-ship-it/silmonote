@@ -50,9 +50,12 @@
     }
 
     /* 하단 버튼 박스 */
-    .bottom-nav { max-width: 900px; margin: 30px auto; text-align: center; }
+    .bottom-nav { max-width: 900px; margin: 30px auto; text-align: center; display: flex; justify-content: center; gap: 12px; }
     .btn-main-home { background: #6c757d; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-decoration: none; display: inline-block; }
     .btn-main-home:hover { opacity: 0.9; }
+    
+    .btn-edit { background: #ff9800; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; display: none; }
+    .btn-edit:hover { background: #e68a00; }
 
     @media print {
       body { background: white; padding: 0; }
@@ -72,9 +75,10 @@
     <p style="text-align: center; padding: 50px;">데이터를 불러오는 중입니다...</p>
   </div>
 
-  <!-- 하단 돌아가기 버튼 -->
+  <!-- 하단 돌아가기 및 수정하기 버튼 -->
   <div class="bottom-nav">
     <button id="bottomBackBtn" class="btn-main-home" onclick="goBack()">🏠 메인으로 돌아가기</button>
+    <button id="editBtn" class="btn-edit" onclick="goToEdit()">✏️ 오답노트 수정하기</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -87,26 +91,34 @@
     const noteId = urlParams.get('id');
     const userRole = urlParams.get('role'); 
 
-    // 오직 URL에 role=admin이 명시되었을 때만 강사 권한 부여
     const IS_ADMIN = (userRole === 'admin');
 
     function goBack() {
       location.href = IS_ADMIN ? 'admin.html' : 'main.html';
     }
 
+    function goToEdit() {
+      if (noteId) {
+        location.href = `note.html?id=${noteId}`;
+      }
+    }
+
     async function loadNoteDetail() {
       const container = document.getElementById('reportContainer');
       const backLink = document.getElementById('backLink');
       const bottomBackBtn = document.getElementById('bottomBackBtn');
+      const editBtn = document.getElementById('editBtn');
       
       if (IS_ADMIN) {
         backLink.href = 'admin.html';
         backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
         bottomBackBtn.innerText = '⬅️ 관리자 대시보드로 돌아가기';
+        if (editBtn) editBtn.style.display = 'none';
       } else {
         backLink.href = 'main.html';
         backLink.innerText = '🏠 메인으로 돌아가기';
         bottomBackBtn.innerText = '🏠 메인으로 돌아가기';
+        if (editBtn) editBtn.style.display = 'inline-block';
       }
 
       if (!noteId) {
@@ -127,7 +139,63 @@
 
       const data = note.content || note;
 
-      // 피드백 데이터 안전 수집
+      // 🟢 note.html에서 구한 필드와 호환되도록 데이터 매핑
+      const solveTime = data.p1_time || data.solve_time || '-';
+      const firstChoice = data.p1_choice || data.first_choice || '-';
+      const isCorrect = data.p1_result || data.is_correct || '-';
+      const topic = data.p1_subject || data.topic || '기록 없음';
+      const evidence1 = data.p1_reason1 || data.evidence1 || '기록 없음';
+      const evidence2 = data.p1_reason2 || data.evidence2 || '기록 없음';
+      const summary = data.p1_summary || data.summary || '기록 없음';
+
+      // 선택지
+      const opts = data.p1_options || [];
+      const opt1 = opts[0] || data.option1 || '-';
+      const opt2 = opts[1] || data.option2 || '-';
+      const opt3 = opts[2] || data.option3 || '-';
+      const opt4 = opts[3] || data.option4 || '-';
+      const opt5 = opts[4] || data.option5 || '-';
+
+      // PAGE 2
+      const lectureTopic = data.p2_subject || data.lecture_topic || '-';
+      const lectureEvidence = data.p2_correct_reason || data.lecture_evidence || '-';
+
+      // 오답 사유 모음
+      let wrongReasonsList = [];
+      if (data.p2_reasons_a && Array.isArray(data.p2_reasons_a)) wrongReasonsList.push(...data.p2_reasons_a);
+      if (data.p2_strong_exp) wrongReasonsList.push(`너무 강한 표현 : ${data.p2_strong_exp}`);
+      if (data.p2_etc_reason_a) wrongReasonsList.push(`기타 : ${data.p2_etc_reason_a}`);
+      if (data.p2_reasons_b && Array.isArray(data.p2_reasons_b)) wrongReasonsList.push(...data.p2_reasons_b);
+      if (data.wrong_reasons) wrongReasonsList.push(data.wrong_reasons);
+
+      const wrongReasonsHtml = wrongReasonsList.length > 0 ? wrongReasonsList.join('<br>• ') : '선택된 항목 없음';
+
+      // PAGE 3
+      const diffMain = data.p3_diff_main || data.diff_lecture || '-';
+      const diffApproach = data.p3_diff_approach || data.diff_approach || '-';
+      const diffSentence = data.p3_diff_sentence || data.diff_evidence || '-';
+      const optDiff1 = data.p3_opt_diff1 || data.diff_choice || '-';
+      const optDiff2 = data.p3_opt_diff2 || data.why_attracted || '-';
+      
+      let actionPlan = '';
+      if (data.p3_action_next) actionPlan += `[우선 확인] ${data.p3_action_next} `;
+      if (data.p3_action_type) actionPlan += `[유형 전략] ${data.p3_action_type}`;
+      if (!actionPlan) actionPlan = data.action_plan || '-';
+
+      // PAGE 4
+      let sentencesHtml = '';
+      if (data.p4_sentences && Array.isArray(data.p4_sentences)) {
+        sentencesHtml = data.p4_sentences.map((s, i) => {
+          if (!s.orig && !s.old && !s.new) return '';
+          return `<strong>[문장 ${i+1}]</strong> ${s.orig || ''}<br>• 기존 해석: ${s.old || '-'}<br>• 올바른 해석: ${s.new || '-'}<br><br>`;
+        }).filter(Boolean).join('');
+      }
+      if (!sentencesHtml) sentencesHtml = data.error_sentences || '기록 없음';
+
+      const vocabList = data.p2_words || data.vocab_list || '기록 없음';
+      const questions = data.p4_questions || data.questions || '질문 없음';
+
+      // 피드백 데이터
       const feedbackText = note.teacher_comment || data.teacher_comment || data.comment || '';
 
       let feedbackHtml = '';
@@ -162,37 +230,37 @@
           </div>
 
           <div class="section-box">
-            <div class="field-row"><span class="field-label">날짜 :</span> <span class="field-value">${note.created_at ? note.created_at.split('T')[0] : '-'}</span></div>
+            <div class="field-row"><span class="field-label">날짜 :</span> <span class="field-value">${note.test_date || (note.created_at ? note.created_at.split('T')[0] : '-')}</span></div>
             <div class="field-row"><span class="field-label">모의고사명 :</span> <span class="field-value">${note.exam_title || '-'}</span></div>
             <div class="field-row"><span class="field-label">문항 번호 및 유형 :</span> <span class="field-value">${note.question_info || '-'}</span></div>
-            <div class="field-row"><span class="field-label">풀이 시간 :</span> <span class="field-value">${data.solve_time || '-'}</span></div>
-            <div class="field-row"><span class="field-label">1차 선택 :</span> <span class="field-value">${data.first_choice || '-'}</span> / <span class="field-label">확신도 :</span> <span class="field-value">${data.confidence || '-'}%</span> / <span class="field-label">정답 여부 :</span> <span class="field-value">${data.is_correct || '-'}</span></div>
+            <div class="field-row"><span class="field-label">풀이 시간 :</span> <span class="field-value">${solveTime}</span></div>
+            <div class="field-row"><span class="field-label">1차 선택 / 확신도 :</span> <span class="field-value">${firstChoice}</span> / <span class="field-label">정답 여부 :</span> <span class="field-value">${isCorrect}</span></div>
           </div>
 
           <div class="section-box">
             <div class="section-title">1. 지문 중심 소재 :</div>
-            <div class="field-value" style="white-space: pre-wrap;">${data.topic || '기록 없음'}</div>
+            <div class="field-value" style="white-space: pre-wrap;">${topic}</div>
           </div>
 
           <div class="section-box">
             <div class="section-title">2. 내가 선택한 정답의 근거 기록</div>
             <div class="field-row"><span class="field-label">2-1. 정답 근거 문장 1 :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence1 || '기록 없음'}</div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${evidence1}</div>
             
             <div class="field-row" style="margin-top:8px;"><span class="field-label">2-2. 정답 근거 문장 2 :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.evidence2 || '기록 없음'}</div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${evidence2}</div>
 
             <div class="field-row" style="margin-top:8px;"><span class="field-label">2-3. 한 줄 요약 (중심 내용) :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${data.summary || '기록 없음'}</div>
+            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${summary}</div>
           </div>
 
           <div class="section-box">
             <div class="section-title">선택지 해석 및 근거 (맞는 듯 보였던 이유 / 버린 이유)</div>
-            <div class="field-row">① <span class="field-value">${data.option1 || '-'}</span></div>
-            <div class="field-row">② <span class="field-value">${data.option2 || '-'}</span></div>
-            <div class="field-row">③ <span class="field-value">${data.option3 || '-'}</span></div>
-            <div class="field-row">④ <span class="field-value">${data.option4 || '-'}</span></div>
-            <div class="field-row">⑤ <span class="field-value">${data.option5 || '-'}</span></div>
+            <div class="field-row">① <span class="field-value">${opt1}</span></div>
+            <div class="field-row">② <span class="field-value">${opt2}</span></div>
+            <div class="field-row">③ <span class="field-value">${opt3}</span></div>
+            <div class="field-row">④ <span class="field-value">${opt4}</span></div>
+            <div class="field-row">⑤ <span class="field-value">${opt5}</span></div>
           </div>
         </div>
 
@@ -205,29 +273,29 @@
 
           <div class="section-box">
             <div class="section-title">1. 해설 및 강의 내용 핵심</div>
-            <div class="field-row"><span class="field-label">1) 소재 :</span> <span class="field-value">${data.lecture_topic || '-'}</span></div>
-            <div class="field-row"><span class="field-label">2) 정답 근거 :</span> <span class="field-value">${data.lecture_evidence || '-'}</span></div>
+            <div class="field-row"><span class="field-label">1) 소재 :</span> <span class="field-value">${lectureTopic}</span></div>
+            <div class="field-row"><span class="field-label">2) 정답 근거 :</span> <span class="field-value" style="white-space: pre-wrap;">${lectureEvidence}</span></div>
           </div>
 
           <div class="section-box">
             <div class="section-title">2. 주요 오답 사유 (체크 항목)</div>
             <div class="field-value" style="padding:10px; background:#f8f9fa; border-radius:4px;">
-              ${data.wrong_reasons ? (Array.isArray(data.wrong_reasons) ? data.wrong_reasons.join('<br>• ') : data.wrong_reasons) : '선택된 항목 없음'}
+              • ${wrongReasonsHtml}
             </div>
           </div>
 
           <div class="section-box">
             <div class="section-title">3. 나의 풀이 방식 분석</div>
-            <div class="field-row"><span class="field-label">해설/강의와 결정적으로 다른 점 :</span> <span class="field-value">${data.diff_lecture || '-'}</span></div>
-            <div class="field-row"><span class="field-label">지문 접근 방식 차이 :</span> <span class="field-value">${data.diff_approach || '-'}</span></div>
-            <div class="field-row"><span class="field-label">근거 문장 선택 차이 :</span> <span class="field-value">${data.diff_evidence || '-'}</span></div>
+            <div class="field-row"><span class="field-label">해설/강의와 결정적으로 다른 점 :</span> <span class="field-value">${diffMain}</span></div>
+            <div class="field-row"><span class="field-label">지문 접근 방식 차이 :</span> <span class="field-value">${diffApproach}</span></div>
+            <div class="field-row"><span class="field-label">근거 문장 선택 차이 :</span> <span class="field-value">${diffSentence}</span></div>
           </div>
 
           <div class="section-box">
             <div class="section-title">4. 선택지 분석 & 5. 다음번 행동 수정</div>
-            <div class="field-row"><span class="field-label">나의 선택과 정답의 차이 :</span> <span class="field-value">${data.diff_choice || '-'}</span></div>
-            <div class="field-row"><span class="field-label">선택한 오답에 끌린 이유 :</span> <span class="field-value">${data.why_attracted || '-'}</span></div>
-            <div class="field-row"><span class="field-label">다음번 접근/수정 수칙 :</span> <span class="field-value">${data.action_plan || '-'}</span></div>
+            <div class="field-row"><span class="field-label">나의 선택과 정답의 차이 :</span> <span class="field-value">${optDiff1}</span></div>
+            <div class="field-row"><span class="field-label">선택한 오답에 끌린 이유 :</span> <span class="field-value">${optDiff2}</span></div>
+            <div class="field-row"><span class="field-label">다음번 접근/수정 수칙 :</span> <span class="field-value">${actionPlan}</span></div>
           </div>
         </div>
 
@@ -240,17 +308,17 @@
 
           <div class="section-box">
             <div class="section-title">해석 오류가 있었던 문장 기록</div>
-            <div class="field-value" style="white-space: pre-wrap;">${data.error_sentences || '기록 없음'}</div>
+            <div class="field-value" style="white-space: pre-wrap;">${sentencesHtml}</div>
           </div>
 
           <div class="section-box">
             <div class="section-title">몰랐던 어휘/표현 정리</div>
-            <div class="field-value" style="white-space: pre-wrap;">${data.vocab_list || '기록 없음'}</div>
+            <div class="field-value" style="white-space: pre-wrap;">${vocabList}</div>
           </div>
 
           <div class="section-box">
             <div class="section-title">학습 관련 질문 및 기타 요청 사항</div>
-            <div class="field-value" style="white-space: pre-wrap;">${data.questions || '질문 없음'}</div>
+            <div class="field-value" style="white-space: pre-wrap;">${questions}</div>
           </div>
 
           ${feedbackHtml}
