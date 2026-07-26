@@ -55,7 +55,7 @@
     .btn-primary { background: #007bff; color: white; }
     .btn-secondary { background: #6c757d; color: white; }
     .btn:hover { opacity: 0.9; }
-
+.btn-warning { background: #ffc107; color: #212529; }
     @media print {
       header, .btn-group { display: none !important; }
       body { background: white; }
@@ -161,6 +161,7 @@
 
       <div class="btn-group">
         <button type="button" class="btn btn-secondary" id="backBtn" onclick="location.href='main.html'">🏠 메인으로 돌아가기</button>
+        <button type="button" class="btn btn-warning" id="editBtn" onclick="location.href='score.html?id=' + scoreId">✏️ 수정하기</button>
         <button type="button" class="btn btn-primary" id="saveCommentBtn" style="display:none;" onclick="saveTeacherComment()">💾 선생님 피드백 저장하기</button>
       </div>
 
@@ -186,16 +187,21 @@
       const navHomeLink = document.getElementById('navHomeLink');
       const saveCommentBtn = document.getElementById('saveCommentBtn');
 
+      const saveCommentBtn = document.getElementById('saveCommentBtn');
+      const editBtn = document.getElementById('editBtn');
+
       if (IS_ADMIN) {
         backBtn.innerText = '⬅️ 관리자 목록으로 돌아가기';
         backBtn.onclick = () => location.href = 'admin.html';
         navHomeLink.href = 'admin.html';
-        saveCommentBtn.style.display = 'block'; // 저장 버튼 노출
+        saveCommentBtn.style.display = 'block';
+        if (editBtn) editBtn.style.display = 'none';
       } else {
         backBtn.innerText = '🏠 메인으로 돌아가기';
         backBtn.onclick = () => location.href = 'main.html';
         navHomeLink.href = 'main.html';
-        saveCommentBtn.style.display = 'none';  // 학생은 저장 버튼 숨김
+        saveCommentBtn.style.display = 'none';
+        if (editBtn) editBtn.style.display = 'block';
       }
 
       if (!scoreId) {
