@@ -6,206 +6,190 @@
   <title>실모기록 - 관리자 대시보드</title>
   <style>
     * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { background-color: #f4f6f8; margin: 0; padding: 0; color: #333; }
-    header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; }
-    .logo { font-size: 20px; font-weight: bold; color: #111; text-decoration: none; }
-    .container { max-width: 1100px; margin: 25px auto; padding: 0 20px; }
-    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
-    h2 { margin-top: 0; font-size: 20px; color: #111; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-    th, td { border: 1px solid #dee2e6; padding: 12px; text-align: center; }
-    th { background: #f1f3f5; font-weight: bold; }
-    tr:hover { background: #f8f9fa; cursor: pointer; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    
-    /* 삭제 요청 행 하이라이트 */
-    tr.delete-req-row { background-color: #fff5f5; }
-    tr.delete-req-row:hover { background-color: #ffe3e3; }
+    body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+    .header { max-width: 1000px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center; }
+    .card { max-width: 1000px; margin: 0 auto 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px; border: 1px solid #eee; text-align: center; font-size: 14px; }
+    th { background: #f8f9fa; font-weight: bold; }
+    .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; text-decoration: none; }
+    .btn-approve { background: #22c55e; color: white; }
+    .btn-delete { background: #ef4444; color: white; }
+    .btn-reject { background: #6b7280; color: white; }
+    .btn-view { background: #ffffff; border: 1px solid #ccc; color: #333; }
+    .badge-del { background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+    .badge-note { background: #ffe4e6; color: #e11d48; padding: 3px 6px; border-radius: 4px; font-weight: bold; }
+    .badge-score { background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <header>
-    <a href="main.html" class="logo">📝 실모기록 [관리자 모드]</a>
-    <div><a href="main.html" style="text-decoration:none; color:#007bff; font-weight:bold;">🏠 메인으로</a></div>
-  </header>
+  <div class="header">
+    <h2>📝 실모기록 [관리자 모드]</h2>
+    <a href="main.html" class="btn btn-view">🏠 메인으로</a>
+  </div>
 
-  <div class="container">
-    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #ff9800;">
-      <h3 style="margin-top: 0; color: #333; font-size: 18px;">⏳ 승인 대기 중인 학생</h3>
-      <div id="pending-list">
-        <p style="color: #888; font-size: 14px;">조회 중...</p>
-      </div>
-    </div>
+  <!-- 1. 가입 승인 대기 학생 -->
+  <div class="card">
+    <h3>⏳ 승인 대기 중인 학생</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>가입일</th>
+          <th>이름</th>
+          <th>반(Class)</th>
+          <th>승인 관리</th>
+        </tr>
+      </thead>
+      <tbody id="pendingStudentsList">
+        <tr><td colspan="4">승인 대기 학생을 불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-    <div class="card">
-      <h2>📊 전체 학생 제출 현황 (모의고사 분석지 & 오답노트)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>제출일자</th>
-            <th>학생 이름</th>
-            <th>반(Class)</th>
-            <th>구분 및 시험명</th>
-            <th>점수 / 상태</th>
-            <th>관리</th>
-          </tr>
-        </thead>
-        <tbody id="adminScoreList">
-          <tr><td colspan="6">데이터를 불러오는 중...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <!-- 2. 전체 제출 현황 -->
+  <div class="card">
+    <h3>📊 전체 학생 제출 현황 (모의고사 분석지 & 오답노트)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>제출일자</th>
+          <th>학생 이름</th>
+          <th>반(Class)</th>
+          <th>구분 및 시험명</th>
+          <th>점수 / 상태</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody id="allSubmissionsList">
+        <tr><td colspan="6">제출 현황을 불러오는 중...</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script>
     const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
     window.addEventListener('DOMContentLoaded', () => {
-      loadAllReports();
       loadPendingStudents();
+      loadAllSubmissions();
     });
 
-    async function loadAllReports() {
-      const tbody = document.getElementById('adminScoreList');
-      tbody.innerHTML = '<tr><td colspan="6">데이터를 불러오는 중...</td></tr>';
+    // 1. 승인 대기 학생 불러오기
+    async function loadPendingStudents() {
+      const container = document.getElementById('pendingStudentsList');
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('is_approved', false);
 
-      try {
-        // 프로필(학생 이름, 반) 전체 미리 가져오기
-        const { data: profiles } = await supabaseClient.from('profiles').select('*');
-        const profileMap = new Map();
-        if (profiles) {
-          profiles.forEach(p => profileMap.set(p.id, p));
-        }
-
-        // 1. 분석지 조회
-        const { data: scores, error: scoreErr } = await supabaseClient
-          .from('score_reports')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        // 2. 오답노트 조회
-        let notes = [];
-        try {
-          const res = await supabaseClient
-            .from('notes')
-            .select('*')
-            .order('created_at', { ascending: false });
-          if (!res.error) notes = res.data;
-        } catch (e) {
-          console.log('notes 조회 스킵');
-        }
-
-        if (scoreErr) {
-          tbody.innerHTML = '<tr><td colspan="6" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>';
-          return;
-        }
-
-        const allItems = [];
-
-        // 분석지 데이터 매핑
-        if (scores) {
-          scores.forEach(s => {
-            const userProf = profileMap.get(s.user_id) || {};
-            allItems.push({
-              id: s.id,
-              type: 'score',
-              title: `[분석지] ${s.exam_title || '모의고사'}`,
-              user_name: s.user_name || userProf.name || '이름 없음',
-              class_name: s.class_name || userProf.class_name || userProf.user_class || '-',
-              score_text: `${s.real_score || '-'}점 (${s.real_grade || '-'}등급)`,
-              delete_requested: false,
-              created_at: s.created_at,
-              viewUrl: `score_view.html?id=${s.id}&role=admin`
-            });
-          });
-        }
-
-        // 오답노트 데이터 매핑 (profiles 테이블과 user_id로 연결)
-        if (notes) {
-          notes.forEach(n => {
-            const userProf = profileMap.get(n.user_id) || {};
-            allItems.push({
-              id: n.id,
-              type: 'note',
-              title: `[오답노트] ${n.exam_title || '모의고사'} (${n.question_info || ''})`,
-              user_name: userProf.name || n.user_name || n.student_name || '이름 없음',
-              class_name: userProf.class_name || userProf.user_class || n.class_name || '-',
-              score_text: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
-              delete_requested: n.delete_requested || false,
-              created_at: n.created_at,
-              viewUrl: `view.html?id=${n.id}&role=admin`
-            });
-          });
-        }
-
-        allItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-        if (allItems.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = '';
-        allItems.forEach(item => {
-          const dateStr = item.created_at ? item.created_at.split('T')[0] : '-';
-          let badgeBg = item.type === 'score' ? '#e7f1ff' : '#e6fcf5';
-          let badgeColor = item.type === 'score' ? '#0056b3' : '#0ca678';
-          let scoreStatusText = item.score_text;
-
-          // 만약 삭제 요청된 상태라면 전용 스타일 지정
-          if (item.delete_requested) {
-            badgeBg = '#ffe3e3';
-            badgeColor = '#e03131';
-            scoreStatusText = '<span style="color:#e03131; font-weight:bold;">🚨 삭제 요청됨</span>';
-          }
-
-          const tr = document.createElement('tr');
-          if (item.delete_requested) tr.classList.add('delete-req-row');
-
-          tr.onclick = () => { location.href = item.viewUrl; };
-
-          // 관리 컬럼 버튼 구성을 위한 HTML
-          let actionBtns = `<button onclick="event.stopPropagation(); location.href='${item.viewUrl}';" style="padding:5px 10px; cursor:pointer; border:1px solid #ccc; background:#fff; border-radius:4px;">상세 보기</button>`;
-
-          if (item.delete_requested) {
-            actionBtns += `
-              <button onclick="event.stopPropagation(); deleteNote('${item.id}', '${item.user_name}');" 
-                      style="padding:5px 10px; margin-left:5px; cursor:pointer; border:none; background:#ef4444; color:white; border-radius:4px; font-weight:bold;">
-                🚨 삭제 승인
-              </button>
-              <button onclick="event.stopPropagation(); rejectDeleteRequest('${item.id}');" 
-                      style="padding:5px 8px; margin-left:3px; cursor:pointer; border:1px solid #ccc; background:#e9ecef; color:#495057; border-radius:4px; font-size:12px;">
-                거절
-              </button>
-            `;
-          }
-
-          tr.innerHTML = `
-            <td>${dateStr}</td>
-            <td><strong>${item.user_name}</strong></td>
-            <td>${item.class_name}</td>
-            <td><span class="badge" style="background:${badgeBg}; color:${badgeColor};">${item.title}</span></td>
-            <td>${scoreStatusText}</td>
-            <td>${actionBtns}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-      } catch (err) {
-        console.error(err);
-        tbody.innerHTML = '<tr><td colspan="6" style="color:red;">오류가 발생했습니다.</td></tr>';
+      if (error || !data || data.length === 0) {
+        container.innerHTML = '<tr><td colspan="4">현재 승인 대기 중인 학생이 없습니다. 🎉</td></tr>';
+        return;
       }
+
+      container.innerHTML = data.map(st => `
+        <tr>
+          <td>${st.created_at ? st.created_at.split('T')[0] : '-'}</td>
+          <td><b>${st.name || st.username || '이름 없음'}</b></td>
+          <td>${st.class_name || '-'}</td>
+          <td><button class="btn btn-approve" onclick="approveStudent('${st.id}')">승인하기</button></td>
+        </tr>
+      `).join('');
     }
 
-    // 🔴 노트를 DB에서 영구 삭제하는 승인 함수
-    async function deleteNote(noteId, userName) {
-      const confirmDelete = confirm(`${userName} 학생의 노트를 정말로 영구 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`);
-      if (!confirmDelete) return;
+    // 학생 가입 승인
+    async function approveStudent(userId) {
+      if (!confirm("이 학생을 승인하시겠습니까?")) return;
+      const { error } = await supabaseClient.from('profiles').update({ is_approved: true }).eq('id', userId);
+      if (error) alert("승인 실패: " + error.message);
+      else { alert("승인되었습니다!"); loadPendingStudents(); }
+    }
+
+    // 2. 전체 제출 현황 불러오기 (학생 이름 연동)
+    async function loadAllSubmissions() {
+      const container = document.getElementById('allSubmissionsList');
+
+      // 프로필(학생이름) 데이터 불러오기
+      const { data: profiles } = await supabaseClient.from('profiles').select('*');
+      const profileMap = {};
+      if (profiles) {
+        profiles.forEach(p => {
+          profileMap[p.id] = p;
+        });
+      }
+
+      // 오답노트 & 성적표 불러오기
+      const { data: notes } = await supabaseClient.from('notes').select('*');
+      const { data: scores } = await supabaseClient.from('score_reports').select('*');
+
+      let combined = [];
+
+      if (notes) {
+        notes.forEach(n => {
+          const user = profileMap[n.user_id] || {};
+          combined.push({
+            type: 'note',
+            id: n.id,
+            date: n.test_date || (n.created_at ? n.created_at.split('T')[0] : '-'),
+            userName: user.name || user.username || n.user_name || '홍길동',
+            className: user.class_name || n.class_name || '-',
+            title: `<span class="badge-note">[오답노트]</span> ${n.exam_title || '제목 없음'}`,
+            status: n.delete_requested ? '<span class="badge-del">🚨 삭제 요청됨</span>' : '정상 제출',
+            isDeleteRequested: n.delete_requested
+          });
+        });
+      }
+
+      if (scores) {
+        scores.forEach(s => {
+          const user = profileMap[s.user_id] || {};
+          combined.push({
+            type: 'score',
+            id: s.id,
+            date: s.test_date || (s.created_at ? s.created_at.split('T')[0] : '-'),
+            userName: user.name || user.username || '홍길동',
+            className: user.class_name || '-',
+            title: `<span class="badge-score">[분석지]</span> ${s.exam_title || '제목 없음'}`,
+            status: `${s.total_score || 0}점 (${s.grade || '-'}등급)`,
+            isDeleteRequested: false
+          });
+        });
+      }
+
+      // 날짜 최신순 정렬
+      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      if (combined.length === 0) {
+        container.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
+        return;
+      }
+
+      container.innerHTML = combined.map(item => `
+        <tr>
+          <td>${item.date}</td>
+          <td><b>${item.userName}</b></td>
+          <td>${item.className}</td>
+          <td>${item.title}</td>
+          <td>${item.status}</td>
+          <td>
+            ${item.type === 'note' ? `<button class="btn btn-view" onclick="location.href='view.html?id=${item.id}&role=admin'">상세 보기</button>` : `<button class="btn btn-view" onclick="location.href='score_view.html?id=${item.id}&role=admin'">상세 보기</button>`}
+            ${item.isDeleteRequested ? `
+              <button class="btn btn-delete" onclick="confirmDeleteNote('${item.id}')">🚨 삭제 승인</button>
+              <button class="btn btn-reject" onclick="rejectDeleteNote('${item.id}')">거절</button>
+            ` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 🚨 진짜 DB에서 삭제하는 함수
+    async function confirmDeleteNote(noteId) {
+      if (!confirm("정말로 이 오답노트를 영구 삭제하시겠습니까?")) return;
 
       const { error } = await supabaseClient
         .from('notes')
@@ -213,83 +197,25 @@
         .eq('id', noteId);
 
       if (error) {
-        alert("삭제 실패: " + error.message);
+        alert("삭제 실패 (Supabase RLS 권한을 확인하세요): " + error.message);
       } else {
-        alert("성공적으로 삭제되었습니다. 🟢");
-        loadAllReports(); // 목록 다시 불러오기
+        alert("오답노트가 성공적으로 삭제되었습니다!");
+        loadAllSubmissions(); // 목록 새로고침
       }
     }
 
-    // 🟡 학생의 삭제 요청을 거부(취소)하는 함수
-    async function rejectDeleteRequest(noteId) {
-      if (!confirm("삭제 요청을 거부하고 일반 제출 상태로 복원하시겠습니까?")) return;
-
+    // 삭제 거절 함수 (삭제 요청 취소)
+    async function rejectDeleteNote(noteId) {
       const { error } = await supabaseClient
         .from('notes')
         .update({ delete_requested: false })
         .eq('id', noteId);
 
       if (error) {
-        alert("처리에 실패했습니다: " + error.message);
+        alert("처리 실패: " + error.message);
       } else {
-        alert("삭제 요청이 거부되었습니다.");
-        loadAllReports();
-      }
-    }
-
-    async function loadPendingStudents() {
-      const listContainer = document.getElementById('pending-list');
-      if (!listContainer) return;
-
-      const { data: pendingUsers, error } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('is_approved', false)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        listContainer.innerHTML = `<p style="color:red; font-size:14px;">목록을 불러오지 못했습니다.</p>`;
-        return;
-      }
-
-      if (!pendingUsers || pendingUsers.length === 0) {
-        listContainer.innerHTML = `<p style="color: #666; font-size: 14px; margin: 0;">현재 승인 대기 중인 학생이 없습니다. 🎉</p>`;
-        return;
-      }
-
-      let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
-      pendingUsers.forEach(user => {
-        html += `
-          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-            <div>
-              <strong style="font-size: 15px; color: #333;">${user.name || '이름 미입력'}</strong> 
-              <span style="color: #777; font-size: 13px; margin-left: 6px;">(${user.email})</span>
-            </div>
-            <button onclick="approveStudent('${user.id}')" 
-                    style="background-color: #4CAF50; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
-              승인하기 🟢
-            </button>
-          </li>
-        `;
-      });
-      html += '</ul>';
-
-      listContainer.innerHTML = html;
-    }
-
-    async function approveStudent(userId) {
-      if (!confirm("이 학생을 승인하시겠습니까?")) return;
-
-      const { error } = await supabaseClient
-        .from('profiles')
-        .update({ is_approved: true })
-        .eq('id', userId);
-
-      if (error) {
-        alert("승인 중 오류 발생: " + error.message);
-      } else {
-        alert("승인이 완료되었습니다! 🟢");
-        loadPendingStudents();
+        alert("삭제 요청을 거절했습니다.");
+        loadAllSubmissions();
       }
     }
   </script>
