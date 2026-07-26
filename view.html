@@ -3,88 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>문항별 심화 오답노트 - 상세보기</title>
+  <title>오답노트 상세 보기 - 실모기록</title>
   <style>
     * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #111; }
-    .nav-bar { max-width: 900px; margin: 0 auto 15px auto; display: flex; justify-content: space-between; align-items: center; }
-    .nav-bar a { text-decoration: none; color: #007bff; font-weight: bold; }
-    .print-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    
-    .paper-page {
-      max-width: 900px;
-      margin: 0 auto 25px auto;
-      background: white;
-      padding: 35px;
-      border: 1px solid #111;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-    .header-title { font-size: 18px; font-weight: bold; }
-    .check-box { font-size: 14px; font-weight: bold; }
-    
-    .section-box { border: 1px solid #333; padding: 18px; margin-bottom: 20px; border-radius: 4px; }
-    .section-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; }
-    
-    .field-row { margin-bottom: 8px; line-height: 1.6; font-size: 14px; }
-    .field-label { font-weight: bold; color: #333; }
-    .field-value { color: #0056b3; font-weight: 500; }
-
-    /* 피드백 박스 스타일 */
-    .teacher-box { background: #f1f3f5; border: 2px solid #228be6; padding: 20px; border-radius: 8px; margin-top: 20px; }
-    .teacher-box textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-top: 8px; resize: vertical; }
-    .save-btn { background: #228be6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; margin-top: 8px; }
-
-    /* 학생용 읽기 전용 피드백 스타일 */
-    .student-feedback-view {
-      background: #ffffff;
-      border: 1px solid #74c0fc;
-      padding: 15px;
-      border-radius: 6px;
-      margin-top: 8px;
-      font-size: 14px;
-      line-height: 1.6;
-      color: #1c7ed6;
-      font-weight: 600;
-      white-space: pre-wrap;
-    }
-
-    /* 하단 버튼 박스 */
-    .bottom-nav { max-width: 900px; margin: 30px auto; text-align: center; display: flex; justify-content: center; gap: 12px; }
-    .btn-main-home { background: #6c757d; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; text-decoration: none; display: inline-block; }
-    .btn-main-home:hover { opacity: 0.9; }
-    
-    .btn-edit { background: #ff9800; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; display: none; }
-    .btn-edit:hover { background: #e68a00; }
-
-    /* 삭제 요청 버튼 스타일 추가 */
-    .btn-delete-req { background: #ef4444; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; display: none; }
-    .btn-delete-req:hover { background: #dc2626; }
-    .btn-delete-req:disabled { background: #9ca3af; cursor: not-allowed; }
-
-    @media print {
-      body { background: white; padding: 0; }
-      .nav-bar, .teacher-box button, .save-btn, .bottom-nav { display: none !important; }
-      .paper-page { box-shadow: none; border: 1px solid #000; margin-bottom: 0; page-break-after: always; }
-    }
+    body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    h2 { border-bottom: 2px solid #222; padding-bottom: 10px; margin-top: 0; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+    .section { margin-bottom: 25px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+    .section h3 { margin-top: 0; font-size: 16px; color: #111; }
+    .content-box { white-space: pre-wrap; word-break: break-all; color: #495057; line-height: 1.6; }
+    .img-box img { max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #eee; }
+    .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+    .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; text-decoration: none; text-align: center; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-warning { background: #ff9800; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-disabled { background: #ced4da; color: #6c757d; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-  <div class="nav-bar">
-    <a id="backLink" href="main.html">🏠 메인으로 돌아가기</a>
-    <button class="print-btn" onclick="window.print()">🖨️ 이 리포트 인쇄 / PDF 저장</button>
-  </div>
+  <div class="container">
+    <h2 id="examTitle">오답노트 상세</h2>
+    
+    <div class="info-grid">
+      <div><strong>작성자:</strong> <span id="userName">-</span></div>
+      <div><strong>반:</strong> <span id="className">-</span></div>
+      <div><strong>문항 번호/유형:</strong> <span id="questionInfo">-</span></div>
+      <div><strong>작성일:</strong> <span id="createdAt">-</span></div>
+    </div>
 
-  <div id="reportContainer">
-    <p style="text-align: center; padding: 50px;">데이터를 불러오는 중입니다...</p>
-  </div>
+    <div class="section">
+      <h3>📸 오답 문항 사진</h3>
+      <div id="imageArea" class="img-box">사진 없음</div>
+    </div>
 
-  <!-- 하단 돌아가기, 수정하기, 삭제 요청 버튼 -->
-  <div class="bottom-nav">
-    <button id="bottomBackBtn" class="btn-main-home" onclick="goBack()">🏠 메인으로 돌아가기</button>
-    <button id="editBtn" class="btn-edit" onclick="goToEdit()">✏️ 오답노트 수정하기</button>
-    <button id="deleteReqBtn" class="btn-delete-req" onclick="requestDelete()">🗑️ 삭제 요청</button>
+    <div class="section">
+      <h3>해석 오류가 있었던 문장 기록</h3>
+      <div id="sentenceBox" class="content-box">기록 없음</div>
+    </div>
+
+    <div class="section">
+      <h3>몰랐던 어휘/표현 정리</h3>
+      <div id="wordBox" class="content-box">기록 없음</div>
+    </div>
+
+    <div class="section">
+      <h3>학습 관련 질문 및 기타 요청 사항</h3>
+      <div id="questionBox" class="content-box">질문 없음</div>
+    </div>
+
+    <div class="section" style="border-color: #007bff; background: #f0f7ff;">
+      <h3 style="color: #007bff;">💭 TEACHER'S COMMENT (선생님 피드백)</h3>
+      <div id="teacherComment" class="content-box" style="font-weight: bold; color: #0056b3;">아직 등록된 피드백이 없습니다.</div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="history.back()">🏠 메인으로 돌아가기</button>
+      <button id="editBtn" class="btn btn-warning" style="display:none;">✏️ 오답노트 수정하기</button>
+      <button id="deleteReqBtn" class="btn btn-danger" onclick="requestDelete()">🚨 삭제 요청하기</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -95,29 +74,65 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
-    const userRole = urlParams.get('role'); 
 
-    const IS_ADMIN = (userRole === 'admin');
-
-    function goBack() {
-      location.href = IS_ADMIN ? 'admin.html' : 'main.html';
-    }
-
-    function goToEdit() {
-      if (noteId) {
-        location.href = `note.html?id=${noteId}`;
-      }
-    }
-
-    // 🔴 삭제 요청 처리 함수 추가
-    async function requestDelete() {
+    window.addEventListener('DOMContentLoaded', () => {
       if (!noteId) {
-        alert("노트 ID를 찾을 수 없습니다.");
+        alert("잘못된 접근입니다.");
+        location.href = 'main.html';
         return;
       }
+      loadNoteDetail();
+    });
 
-      const confirmDelete = confirm("관리자에게 이 노트의 삭제를 요청하시겠습니까?");
-      if (!confirmDelete) return;
+    async function loadNoteDetail() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('notes')
+          .select('*')
+          .eq('id', noteId)
+          .single();
+
+        if (error || !data) {
+          alert("노트를 불러올 수 없습니다.");
+          return;
+        }
+
+        document.getElementById('examTitle').textContent = `📝 ${data.exam_title || '오답노트'}`;
+        document.getElementById('userName').textContent = data.user_name || data.student_name || '이름 없음';
+        document.getElementById('className').textContent = data.class_name || '-';
+        document.getElementById('questionInfo').textContent = data.question_info || '-';
+        document.getElementById('createdAt').textContent = data.created_at ? data.created_at.split('T')[0] : '-';
+
+        if (data.image_url) {
+          document.getElementById('imageArea').innerHTML = `<img src="${data.image_url}" alt="오답 사진">`;
+        }
+        if (data.sentence_analysis) document.getElementById('sentenceBox').textContent = data.sentence_analysis;
+        if (data.word_vocab) document.getElementById('wordBox').textContent = data.word_vocab;
+        if (data.question_text) document.getElementById('questionBox').textContent = data.question_text;
+        if (data.teacher_comment) document.getElementById('teacherComment').textContent = data.teacher_comment;
+
+        // 수정 버튼 세팅
+        const editBtn = document.getElementById('editBtn');
+        editBtn.style.display = 'inline-block';
+        editBtn.onclick = () => { location.href = `note.html?id=${data.id}`; };
+
+        // 이미 삭제 요청 중인 경우 버튼 상태 변경
+        const delBtn = document.getElementById('deleteReqBtn');
+        if (data.delete_requested) {
+          delBtn.textContent = '⏳ 삭제 요청 처리 중...';
+          delBtn.className = 'btn btn-disabled';
+          delBtn.disabled = true;
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // 🚨 학생 삭제 요청 함수
+    async function requestDelete() {
+      const confirmReq = confirm("선생님(관리자)께 이 노포의 삭제를 요청하시겠습니까?\n관리자 승인 후 완전히 삭제됩니다.");
+      if (!confirmReq) return;
 
       const { error } = await supabaseClient
         .from('notes')
@@ -125,274 +140,12 @@
         .eq('id', noteId);
 
       if (error) {
-        alert("삭제 요청 중 오류가 발생했습니다: " + error.message);
+        alert("요청 실패: " + error.message);
       } else {
-        alert("삭제 요청이 완료되었습니다. 관리자 확인 후 삭제될 예정입니다.");
-        location.href = 'main.html';
+        alert("선생님께 삭제 요청을 보냈습니다! 🚨");
+        location.reload(); // 화면 새로고침
       }
     }
-
-    async function loadNoteDetail() {
-      const container = document.getElementById('reportContainer');
-      const backLink = document.getElementById('backLink');
-      const bottomBackBtn = document.getElementById('bottomBackBtn');
-      const editBtn = document.getElementById('editBtn');
-      const deleteReqBtn = document.getElementById('deleteReqBtn');
-      
-      if (IS_ADMIN) {
-        backLink.href = 'admin.html';
-        backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
-        bottomBackBtn.innerText = '⬅️ 관리자 대시보드로 돌아가기';
-        if (editBtn) editBtn.style.display = 'none';
-        if (deleteReqBtn) deleteReqBtn.style.display = 'none';
-      } else {
-        backLink.href = 'main.html';
-        backLink.innerText = '🏠 메인으로 돌아가기';
-        bottomBackBtn.innerText = '🏠 메인으로 돌아가기';
-        if (editBtn) editBtn.style.display = 'inline-block';
-        if (deleteReqBtn) deleteReqBtn.style.display = 'inline-block';
-      }
-
-      if (!noteId) {
-        container.innerHTML = '<p style="color:red; text-align:center;">잘못된 접근입니다. (ID 누락)</p>';
-        return;
-      }
-
-      const { data: note, error } = await supabaseClient
-        .from('notes')
-        .select('*')
-        .eq('id', noteId)
-        .single();
-
-      if (error || !note) {
-        container.innerHTML = '<p style="color:red; text-align:center;">데이터를 불러오지 못했습니다.</p>';
-        return;
-      }
-
-      // 이미 삭제 요청된 노트 처리
-      if (note.delete_requested && deleteReqBtn) {
-        deleteReqBtn.innerText = '⏳ 삭제 요청됨';
-        deleteReqBtn.disabled = true;
-      }
-
-      // 🟢 note 자체 데이터와 content 내부 데이터를 안전하게 병합합니다.
-      let data = { ...note };
-      if (note.content) {
-        if (typeof note.content === 'object' && Object.keys(note.content).length > 0) {
-          data = { ...note, ...note.content };
-        } else if (typeof note.content === 'string' && note.content.trim() !== '') {
-          try {
-            const parsed = JSON.parse(note.content);
-            if (parsed && typeof parsed === 'object') {
-              data = { ...note, ...parsed };
-            }
-          } catch(e) {}
-        }
-      }
-
-      // PAGE 1 항목 매핑
-      const solveTime = data.p1_time || data.solve_time || '-';
-      const firstChoice = data.p1_choice || data.first_choice || '-';
-      const isCorrect = data.p1_result || data.is_correct || '-';
-      const topic = data.p1_subject || data.topic || '기록 없음';
-      const evidence1 = data.p1_reason1 || data.evidence1 || '기록 없음';
-      const evidence2 = data.p1_reason2 || data.evidence2 || '기록 없음';
-      const summary = data.p1_summary || data.summary || '기록 없음';
-
-      // 선택지
-      const opts = data.p1_options || [];
-      const opt1 = opts[0] || data.option1 || data.p1_opt1 || '-';
-      const opt2 = opts[1] || data.option2 || data.p1_opt2 || '-';
-      const opt3 = opts[2] || data.option3 || data.p1_opt3 || '-';
-      const opt4 = opts[3] || data.option4 || data.p1_opt4 || '-';
-      const opt5 = opts[4] || data.option5 || data.p1_opt5 || '-';
-
-      // PAGE 2
-      const lectureTopic = data.p2_subject || data.lecture_topic || '-';
-      const lectureEvidence = data.p2_correct_reason || data.lecture_evidence || '-';
-
-      // 오답 사유 모음
-      let wrongReasonsList = [];
-      if (data.p2_reasons_a && Array.isArray(data.p2_reasons_a)) wrongReasonsList.push(...data.p2_reasons_a);
-      if (data.p2_strong_exp) wrongReasonsList.push(`너무 강한 표현 : ${data.p2_strong_exp}`);
-      if (data.p2_etc_reason_a) wrongReasonsList.push(`기타 : ${data.p2_etc_reason_a}`);
-      if (data.p2_reasons_b && Array.isArray(data.p2_reasons_b)) wrongReasonsList.push(...data.p2_reasons_b);
-      if (data.wrong_reasons) wrongReasonsList.push(data.wrong_reasons);
-
-      const wrongReasonsHtml = wrongReasonsList.length > 0 ? wrongReasonsList.join('<br>• ') : '선택된 항목 없음';
-
-      // PAGE 3
-      const diffMain = data.p3_diff_main || data.diff_lecture || '-';
-      const diffApproach = data.p3_diff_approach || data.diff_approach || '-';
-      const diffSentence = data.p3_diff_sentence || data.diff_evidence || '-';
-      const optDiff1 = data.p3_opt_diff1 || data.diff_choice || '-';
-      const optDiff2 = data.p3_opt_diff2 || data.why_attracted || '-';
-      
-      let actionPlan = '';
-      if (data.p3_action_next) actionPlan += `[우선 확인] ${data.p3_action_next} `;
-      if (data.p3_action_type) actionPlan += `[유형 전략] ${data.p3_action_type}`;
-      if (!actionPlan) actionPlan = data.action_plan || '-';
-
-      // PAGE 4
-      let sentencesHtml = '';
-      if (data.p4_sentences && Array.isArray(data.p4_sentences)) {
-        sentencesHtml = data.p4_sentences.map((s, i) => {
-          if (!s.orig && !s.old && !s.new) return '';
-          return `<strong>[문장 ${i+1}]</strong> ${s.orig || ''}<br>• 기존 해석: ${s.old || '-'}<br>• 올바른 해석: ${s.new || '-'}<br><br>`;
-        }).filter(Boolean).join('');
-      }
-      if (!sentencesHtml) sentencesHtml = data.error_sentences || '기록 없음';
-
-      const vocabList = data.p2_words || data.vocab_list || '기록 없음';
-      const questions = data.p4_questions || data.questions || '질문 없음';
-
-      // 피드백 데이터
-      const feedbackText = note.teacher_comment || data.teacher_comment || data.comment || '';
-
-      let feedbackHtml = '';
-      if (IS_ADMIN) {
-        feedbackHtml = `
-          <div class="teacher-box">
-            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백 작성)</div>
-            <textarea id="teacherCommentInput" placeholder="학생에게 전할 피드백이나 코멘트를 입력하세요...">${feedbackText}</textarea>
-            <button class="save-btn" onclick="saveTeacherComment()">피드백 저장하기 💾</button>
-            <div style="clear:both;"></div>
-          </div>
-        `;
-      } else {
-        const displayComment = feedbackText.trim() !== '' ? feedbackText : '아직 작성된 선생님 피드백이 없습니다.';
-        feedbackHtml = `
-          <div class="teacher-box">
-            <div style="font-weight:bold; color:#1864ab;">💬 TEACHER'S COMMENT (선생님 피드백)</div>
-            <div class="student-feedback-view">${displayComment}</div>
-          </div>
-        `;
-      }
-
-      container.innerHTML = `
-        <!-- PAGE 1: 시험 직후 해설 확인 전 -->
-        <div class="paper-page">
-          <div class="header-top">
-            <div>
-              <div class="header-title">시험 직후 해설 확인 전 작성 [독해 문항]</div>
-              <div style="font-size: 13px; color: #666; margin-top: 4px;">자신의 풀이 과정을 최대한 솔직하게 기록합니다.</div>
-            </div>
-            <div class="check-box">학생 이름 : <span class="field-value">${note.user_name || '-'}</span> | 검토 확인 🔳</div>
-          </div>
-
-          <div class="section-box">
-            <div class="field-row"><span class="field-label">날짜 :</span> <span class="field-value">${note.test_date || (note.created_at ? note.created_at.split('T')[0] : '-')}</span></div>
-            <div class="field-row"><span class="field-label">모의고사명 :</span> <span class="field-value">${note.exam_title || '-'}</span></div>
-            <div class="field-row"><span class="field-label">문항 번호 및 유형 :</span> <span class="field-value">${note.question_info || '-'}</span></div>
-            <div class="field-row"><span class="field-label">풀이 시간 :</span> <span class="field-value">${solveTime}</span></div>
-            <div class="field-row"><span class="field-label">1차 선택 / 확신도 :</span> <span class="field-value">${firstChoice}</span> / <span class="field-label">정답 여부 :</span> <span class="field-value">${isCorrect}</span></div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">1. 지문 중심 소재 :</div>
-            <div class="field-value" style="white-space: pre-wrap;">${topic}</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">2. 내가 선택한 정답의 근거 기록</div>
-            <div class="field-row"><span class="field-label">2-1. 정답 근거 문장 1 :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${evidence1}</div>
-            
-            <div class="field-row" style="margin-top:8px;"><span class="field-label">2-2. 정답 근거 문장 2 :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${evidence2}</div>
-
-            <div class="field-row" style="margin-top:8px;"><span class="field-label">2-3. 한 줄 요약 (중심 내용) :</span></div>
-            <div class="field-value" style="margin-left:15px; white-space: pre-wrap;">${summary}</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">선택지 해석 및 근거 (맞는 듯 보였던 이유 / 버린 이유)</div>
-            <div class="field-row">① <span class="field-value">${opt1}</span></div>
-            <div class="field-row">② <span class="field-value">${opt2}</span></div>
-            <div class="field-row">③ <span class="field-value">${opt3}</span></div>
-            <div class="field-row">④ <span class="field-value">${opt4}</span></div>
-            <div class="field-row">⑤ <span class="field-value">${opt5}</span></div>
-          </div>
-        </div>
-
-        <!-- PAGE 2: 강의 및 해설 확인 후 -->
-        <div class="paper-page">
-          <div class="header-top">
-            <div class="header-title">강의 및 해설 확인 후 기록</div>
-            <div class="check-box">검토 확인 🔳</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">1. 해설 및 강의 내용 핵심</div>
-            <div class="field-row"><span class="field-label">1) 소재 :</span> <span class="field-value">${lectureTopic}</span></div>
-            <div class="field-row"><span class="field-label">2) 정답 근거 :</span> <span class="field-value" style="white-space: pre-wrap;">${lectureEvidence}</span></div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">2. 주요 오답 사유 (체크 항목)</div>
-            <div class="field-value" style="padding:10px; background:#f8f9fa; border-radius:4px;">
-              • ${wrongReasonsHtml}
-            </div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">3. 나의 풀이 방식 분석</div>
-            <div class="field-row"><span class="field-label">해설/강의와 결정적으로 다른 점 :</span> <span class="field-value">${diffMain}</span></div>
-            <div class="field-row"><span class="field-label">지문 접근 방식 차이 :</span> <span class="field-value">${diffApproach}</span></div>
-            <div class="field-row"><span class="field-label">근거 문장 선택 차이 :</span> <span class="field-value">${diffSentence}</span></div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">4. 선택지 분석 & 5. 다음번 행동 수정</div>
-            <div class="field-row"><span class="field-label">나의 선택과 정답의 차이 :</span> <span class="field-value">${optDiff1}</span></div>
-            <div class="field-row"><span class="field-label">선택한 오답에 끌린 이유 :</span> <span class="field-value">${optDiff2}</span></div>
-            <div class="field-row"><span class="field-label">다음번 접근/수정 수칙 :</span> <span class="field-value">${actionPlan}</span></div>
-          </div>
-        </div>
-
-        <!-- PAGE 3: 해석 오류 및 질문 / 피드백 -->
-        <div class="paper-page">
-          <div class="header-top">
-            <div class="header-title">해석 오류 문장 & 학습 질문</div>
-            <div class="check-box">검토 확인 🔳</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">해석 오류가 있었던 문장 기록</div>
-            <div class="field-value" style="white-space: pre-wrap;">${sentencesHtml}</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">몰랐던 어휘/표현 정리</div>
-            <div class="field-value" style="white-space: pre-wrap;">${vocabList}</div>
-          </div>
-
-          <div class="section-box">
-            <div class="section-title">학습 관련 질문 및 기타 요청 사항</div>
-            <div class="field-value" style="white-space: pre-wrap;">${questions}</div>
-          </div>
-
-          ${feedbackHtml}
-        </div>
-      `;
-    }
-
-    async function saveTeacherComment() {
-      if (!IS_ADMIN) return;
-      const comment = document.getElementById('teacherCommentInput').value;
-      const { error } = await supabaseClient
-        .from('notes')
-        .update({ teacher_comment: comment })
-        .eq('id', noteId);
-
-      if (error) {
-        alert('피드백 저장 실패: ' + error.message);
-      } else {
-        alert('피드백이 성공적으로 저장되었습니다! 🟢');
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', loadNoteDetail);
   </script>
 </body>
 </html>
