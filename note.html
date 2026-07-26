@@ -242,26 +242,18 @@
 
   // 수정 모드 시 데이터 불러오기
   async function loadNoteForEdit() {
-    if (!noteId) return; // 새 작성일 때는 빈 입력창 유지
+    if (!noteId) return;
     document.getElementById('pageTitle').innerText = "✏️ 오답노트 수정하기";
     
-    const { data: note, error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('notes')
       .select('*')
       .eq('id', noteId)
       .single();
 
-    if (error || !note) {
+    if (error || !data) {
       alert("노트 데이터를 불러오지 못했습니다.");
       return;
-    }
-
-    let data = { ...note };
-    if (note.content) {
-      if (typeof note.content === 'object') data = { ...note, ...note.content };
-      else if (typeof note.content === 'string') {
-        try { data = { ...note, ...JSON.parse(note.content) }; } catch(e) {}
-      }
     }
 
     // 기본 정보
@@ -271,39 +263,35 @@
     if (data.question_info) document.getElementById('question_info').value = data.question_info;
 
     // Page 1
-    if (data.p1_time || data.solve_time) document.getElementById('p1_time').value = data.p1_time || data.solve_time;
-    if (data.p1_choice || data.first_choice) document.getElementById('p1_choice').value = data.p1_choice || data.first_choice;
-    if (data.p1_result || data.is_correct) document.getElementById('p1_result').value = data.p1_result || data.is_correct;
-    if (data.p1_subject || data.topic) document.getElementById('p1_subject').value = data.p1_subject || data.topic;
-    if (data.p1_reason1 || data.evidence1) document.getElementById('p1_reason1').value = data.p1_reason1 || data.evidence1;
-    if (data.p1_reason2 || data.evidence2) document.getElementById('p1_reason2').value = data.p1_reason2 || data.evidence2;
-    if (data.p1_summary || data.summary) document.getElementById('p1_summary').value = data.p1_summary || data.summary;
+    if (data.p1_time) document.getElementById('p1_time').value = data.p1_time;
+    if (data.p1_choice) document.getElementById('p1_choice').value = data.p1_choice;
+    if (data.p1_result) document.getElementById('p1_result').value = data.p1_result;
+    if (data.p1_subject) document.getElementById('p1_subject').value = data.p1_subject;
+    if (data.p1_reason1) document.getElementById('p1_reason1').value = data.p1_reason1;
+    if (data.p1_reason2) document.getElementById('p1_reason2').value = data.p1_reason2;
+    if (data.p1_summary) document.getElementById('p1_summary').value = data.p1_summary;
 
     const opts = data.p1_options || [];
-    document.getElementById('p1_opt1').value = opts[0] || data.p1_opt1 || data.option1 || '';
-    document.getElementById('p1_opt2').value = opts[1] || data.p1_opt2 || data.option2 || '';
-    document.getElementById('p1_opt3').value = opts[2] || data.p1_opt3 || data.option3 || '';
-    document.getElementById('p1_opt4').value = opts[3] || data.p1_opt4 || data.option4 || '';
-    document.getElementById('p1_opt5').value = opts[4] || data.p1_opt5 || data.option5 || '';
+    document.getElementById('p1_opt1').value = opts[0] || '';
+    document.getElementById('p1_opt2').value = opts[1] || '';
+    document.getElementById('p1_opt3').value = opts[2] || '';
+    document.getElementById('p1_opt4').value = opts[3] || '';
+    document.getElementById('p1_opt5').value = opts[4] || '';
 
     // Page 2
-    document.getElementById('p2_subject').value = data.p2_subject || data.lecture_topic || '';
-    document.getElementById('p2_correct_reason').value = data.p2_correct_reason || data.lecture_evidence || '';
-    
-    let reasonText = '';
-    if (Array.isArray(data.p2_reasons_a)) reasonText = data.p2_reasons_a.join('\n');
-    else reasonText = data.p2_reasons_a || data.wrong_reasons || '';
-    document.getElementById('p2_reasons_a').value = reasonText;
-    document.getElementById('p2_words').value = data.p2_words || data.vocab_list || data.word_vocab || '';
+    document.getElementById('p2_subject').value = data.p2_subject || '';
+    document.getElementById('p2_correct_reason').value = data.p2_correct_reason || '';
+    document.getElementById('p2_reasons_a').value = data.p2_reasons_a || '';
+    document.getElementById('p2_words').value = data.p2_words || '';
 
     // Page 3
-    document.getElementById('p3_diff_main').value = data.p3_diff_main || data.diff_lecture || '';
-    document.getElementById('p3_diff_approach').value = data.p3_diff_approach || data.diff_approach || '';
-    document.getElementById('p3_diff_sentence').value = data.p3_diff_sentence || data.diff_evidence || '';
-    document.getElementById('p3_opt_diff1').value = data.p3_opt_diff1 || data.diff_choice || '';
-    document.getElementById('p3_opt_diff2').value = data.p3_opt_diff2 || data.why_attracted || '';
+    document.getElementById('p3_diff_main').value = data.p3_diff_main || '';
+    document.getElementById('p3_diff_approach').value = data.p3_diff_approach || '';
+    document.getElementById('p3_diff_sentence').value = data.p3_diff_sentence || '';
+    document.getElementById('p3_opt_diff1').value = data.p3_opt_diff1 || '';
+    document.getElementById('p3_opt_diff2').value = data.p3_opt_diff2 || '';
     document.getElementById('p3_action_next').value = data.p3_action_next || '';
-    document.getElementById('p3_action_type').value = data.p3_action_type || data.action_plan || '';
+    document.getElementById('p3_action_type').value = data.p3_action_type || '';
 
     // Page 4
     if (data.p4_sentences && Array.isArray(data.p4_sentences)) {
@@ -318,16 +306,20 @@
         document.getElementById('s2_new').value = data.p4_sentences[1].new || '';
       }
     }
-    document.getElementById('p4_questions').value = data.p4_questions || data.questions || data.question_text || '';
+    document.getElementById('p4_questions').value = data.p4_questions || '';
   }
 
-  // 노트 저장 (생성 / 업데이트)
+  // 노트 저장 (개별 컬럼 방식)
   async function saveNote() {
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.innerText = "저장 중입니다...";
 
-    const contentObj = {
+    const payload = {
+      user_name: document.getElementById('user_name').value,
+      test_date: document.getElementById('test_date').value,
+      exam_title: document.getElementById('exam_title').value,
+      question_info: document.getElementById('question_info').value,
       p1_time: document.getElementById('p1_time').value,
       p1_choice: document.getElementById('p1_choice').value,
       p1_result: document.getElementById('p1_result').value,
@@ -360,14 +352,6 @@
       p4_questions: document.getElementById('p4_questions').value
     };
 
-    const payload = {
-      user_name: document.getElementById('user_name').value,
-      test_date: document.getElementById('test_date').value,
-      exam_title: document.getElementById('exam_title').value,
-      question_info: document.getElementById('question_info').value,
-      content: contentObj
-    };
-
     let res;
     if (noteId) {
       res = await supabaseClient.from('notes').update(payload).eq('id', noteId);
@@ -388,7 +372,6 @@
   window.addEventListener('DOMContentLoaded', () => {
     loadNoteForEdit();
 
-    // 엔터키 자동 제출 방지 (Textarea는 제외)
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Enter') {
         if (event.target.tagName.toUpperCase() !== 'TEXTAREA') {
