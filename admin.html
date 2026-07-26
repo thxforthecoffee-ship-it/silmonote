@@ -17,6 +17,10 @@
     th { background: #f1f3f5; font-weight: bold; }
     tr:hover { background: #f8f9fa; cursor: pointer; }
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    
+    /* 삭제 요청 행 하이라이트 */
+    tr.delete-req-row { background-color: #fff5f5; }
+    tr.delete-req-row:hover { background-color: #ffe3e3; }
   </style>
 </head>
 <body>
@@ -114,6 +118,7 @@
               user_name: s.user_name || userProf.name || '이름 없음',
               class_name: s.class_name || userProf.class_name || userProf.user_class || '-',
               score_text: `${s.real_score || '-'}점 (${s.real_grade || '-'}등급)`,
+              delete_requested: false,
               created_at: s.created_at,
               viewUrl: `score_view.html?id=${s.id}&role=admin`
             });
@@ -131,6 +136,7 @@
               user_name: userProf.name || n.user_name || n.student_name || '이름 없음',
               class_name: userProf.class_name || userProf.user_class || n.class_name || '-',
               score_text: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
+              delete_requested: n.delete_requested || false,
               created_at: n.created_at,
               viewUrl: `view.html?id=${n.id}&role=admin`
             });
@@ -147,18 +153,45 @@
         tbody.innerHTML = '';
         allItems.forEach(item => {
           const dateStr = item.created_at ? item.created_at.split('T')[0] : '-';
-          const badgeBg = item.type === 'score' ? '#e7f1ff' : '#e6fcf5';
-          const badgeColor = item.type === 'score' ? '#0056b3' : '#0ca678';
+          let badgeBg = item.type === 'score' ? '#e7f1ff' : '#e6fcf5';
+          let badgeColor = item.type === 'score' ? '#0056b3' : '#0ca678';
+          let scoreStatusText = item.score_text;
+
+          // 만약 삭제 요청된 상태라면 전용 스타일 지정
+          if (item.delete_requested) {
+            badgeBg = '#ffe3e3';
+            badgeColor = '#e03131';
+            scoreStatusText = '<span style="color:#e03131; font-weight:bold;">🚨 삭제 요청됨</span>';
+          }
 
           const tr = document.createElement('tr');
+          if (item.delete_requested) tr.classList.add('delete-req-row');
+
           tr.onclick = () => { location.href = item.viewUrl; };
+
+          // 관리 컬럼 버튼 구성을 위한 HTML
+          let actionBtns = `<button onclick="event.stopPropagation(); location.href='${item.viewUrl}';" style="padding:5px 10px; cursor:pointer; border:1px solid #ccc; background:#fff; border-radius:4px;">상세 보기</button>`;
+
+          if (item.delete_requested) {
+            actionBtns += `
+              <button onclick="event.stopPropagation(); deleteNote('${item.id}', '${item.user_name}');" 
+                      style="padding:5px 10px; margin-left:5px; cursor:pointer; border:none; background:#ef4444; color:white; border-radius:4px; font-weight:bold;">
+                🚨 삭제 승인
+              </button>
+              <button onclick="event.stopPropagation(); rejectDeleteRequest('${item.id}');" 
+                      style="padding:5px 8px; margin-left:3px; cursor:pointer; border:1px solid #ccc; background:#e9ecef; color:#495057; border-radius:4px; font-size:12px;">
+                거절
+              </button>
+            `;
+          }
+
           tr.innerHTML = `
             <td>${dateStr}</td>
             <td><strong>${item.user_name}</strong></td>
             <td>${item.class_name}</td>
             <td><span class="badge" style="background:${badgeBg}; color:${badgeColor};">${item.title}</span></td>
-            <td>${item.score_text}</td>
-            <td><button style="padding:5px 10px; cursor:pointer; border:1px solid #ccc; background:#fff; border-radius:4px;">상세 보기</button></td>
+            <td>${scoreStatusText}</td>
+            <td>${actionBtns}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -166,6 +199,41 @@
       } catch (err) {
         console.error(err);
         tbody.innerHTML = '<tr><td colspan="6" style="color:red;">오류가 발생했습니다.</td></tr>';
+      }
+    }
+
+    // 🔴 노트를 DB에서 영구 삭제하는 승인 함수
+    async function deleteNote(noteId, userName) {
+      const confirmDelete = confirm(`${userName} 학생의 노트를 정말로 영구 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`);
+      if (!confirmDelete) return;
+
+      const { error } = await supabaseClient
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) {
+        alert("삭제 실패: " + error.message);
+      } else {
+        alert("성공적으로 삭제되었습니다. 🟢");
+        loadAllReports(); // 목록 다시 불러오기
+      }
+    }
+
+    // 🟡 학생의 삭제 요청을 거부(취소)하는 함수
+    async function rejectDeleteRequest(noteId) {
+      if (!confirm("삭제 요청을 거부하고 일반 제출 상태로 복원하시겠습니까?")) return;
+
+      const { error } = await supabaseClient
+        .from('notes')
+        .update({ delete_requested: false })
+        .eq('id', noteId);
+
+      if (error) {
+        alert("처리에 실패했습니다: " + error.message);
+      } else {
+        alert("삭제 요청이 거부되었습니다.");
+        loadAllReports();
       }
     }
 

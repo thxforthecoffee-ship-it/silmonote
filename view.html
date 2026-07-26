@@ -57,6 +57,11 @@
     .btn-edit { background: #ff9800; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; display: none; }
     .btn-edit:hover { background: #e68a00; }
 
+    /* 삭제 요청 버튼 스타일 추가 */
+    .btn-delete-req { background: #ef4444; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; display: none; }
+    .btn-delete-req:hover { background: #dc2626; }
+    .btn-delete-req:disabled { background: #9ca3af; cursor: not-allowed; }
+
     @media print {
       body { background: white; padding: 0; }
       .nav-bar, .teacher-box button, .save-btn, .bottom-nav { display: none !important; }
@@ -75,10 +80,11 @@
     <p style="text-align: center; padding: 50px;">데이터를 불러오는 중입니다...</p>
   </div>
 
-  <!-- 하단 돌아가기 및 수정하기 버튼 -->
+  <!-- 하단 돌아가기, 수정하기, 삭제 요청 버튼 -->
   <div class="bottom-nav">
     <button id="bottomBackBtn" class="btn-main-home" onclick="goBack()">🏠 메인으로 돌아가기</button>
     <button id="editBtn" class="btn-edit" onclick="goToEdit()">✏️ 오답노트 수정하기</button>
+    <button id="deleteReqBtn" class="btn-delete-req" onclick="requestDelete()">🗑️ 삭제 요청</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -103,22 +109,48 @@
       }
     }
 
+    // 🔴 삭제 요청 처리 함수 추가
+    async function requestDelete() {
+      if (!noteId) {
+        alert("노트 ID를 찾을 수 없습니다.");
+        return;
+      }
+
+      const confirmDelete = confirm("관리자에게 이 노트의 삭제를 요청하시겠습니까?");
+      if (!confirmDelete) return;
+
+      const { error } = await supabaseClient
+        .from('notes')
+        .update({ delete_requested: true })
+        .eq('id', noteId);
+
+      if (error) {
+        alert("삭제 요청 중 오류가 발생했습니다: " + error.message);
+      } else {
+        alert("삭제 요청이 완료되었습니다. 관리자 확인 후 삭제될 예정입니다.");
+        location.href = 'main.html';
+      }
+    }
+
     async function loadNoteDetail() {
       const container = document.getElementById('reportContainer');
       const backLink = document.getElementById('backLink');
       const bottomBackBtn = document.getElementById('bottomBackBtn');
       const editBtn = document.getElementById('editBtn');
+      const deleteReqBtn = document.getElementById('deleteReqBtn');
       
       if (IS_ADMIN) {
         backLink.href = 'admin.html';
         backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
         bottomBackBtn.innerText = '⬅️ 관리자 대시보드로 돌아가기';
         if (editBtn) editBtn.style.display = 'none';
+        if (deleteReqBtn) deleteReqBtn.style.display = 'none';
       } else {
         backLink.href = 'main.html';
         backLink.innerText = '🏠 메인으로 돌아가기';
         bottomBackBtn.innerText = '🏠 메인으로 돌아가기';
         if (editBtn) editBtn.style.display = 'inline-block';
+        if (deleteReqBtn) deleteReqBtn.style.display = 'inline-block';
       }
 
       if (!noteId) {
@@ -137,7 +169,13 @@
         return;
       }
 
-      // 🟢 [핵심 수정] note 자체 데이터와 content 내부 데이터를 안전하게 병합합니다.
+      // 이미 삭제 요청된 노트 처리
+      if (note.delete_requested && deleteReqBtn) {
+        deleteReqBtn.innerText = '⏳ 삭제 요청됨';
+        deleteReqBtn.disabled = true;
+      }
+
+      // 🟢 note 자체 데이터와 content 내부 데이터를 안전하게 병합합니다.
       let data = { ...note };
       if (note.content) {
         if (typeof note.content === 'object' && Object.keys(note.content).length > 0) {
