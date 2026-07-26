@@ -298,12 +298,37 @@
 
     const { data: { user } } = await supabaseClient.auth.getUser();
 
+    // 🟢 로그인된 사용자의 프로필(이름, 반) 가져오기 로직 추가
+    let userName = '이름 없음';
+    let className = '-';
+
+    if (user) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        userName = profile.name || user.user_metadata?.name || '이름 없음';
+        className = profile.class_name || profile.user_class || user.user_metadata?.class_name || '-';
+      } else if (user.user_metadata) {
+        userName = user.user_metadata.name || '이름 없음';
+        className = user.user_metadata.class_name || '-';
+      }
+    }
+
     const getCheckedValues = (name) => {
       return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
     };
 
     const noteData = {
       user_id: user ? user.id : null,
+      user_name: userName,       // 🟢 이름 저장 추가
+      student_name: userName,    // 🟢 호환성용 추가
+      class_name: className,     // 🟢 반 저장 추가
+      user_class: className,     // 🟢 호환성용 추가
+
       test_date: document.getElementById('testDate')?.value || '',
       exam_title: document.getElementById('examTitle')?.value || '',
       question_info: document.getElementById('questionInfo')?.value || '',
@@ -371,7 +396,7 @@
     }
   }
 
-  // 데이터 불러오기 함수 (선생님 피드백 완벽 매핑)
+  // 데이터 불러오기 함수 (체크박스 및 문항 복원 완벽 보완)
   async function loadNoteData() {
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
@@ -381,7 +406,7 @@
       .from('notes')
       .select('*')
       .eq('id', noteId)
-      .single();
+      .single(); 
       
     if (error || !data) return;
 
@@ -412,6 +437,18 @@
     if (data.p2_etc_reason_a) document.getElementById('p2_etcReasonA').value = data.p2_etc_reason_a;
     if (data.p2_words) document.getElementById('p2_words1').value = data.p2_words;
 
+    // 🟢 [보완] 체크박스 복원 함수
+    const setCheckedValues = (name, values) => {
+      if (!Array.isArray(values)) return;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+        cb.checked = values.includes(cb.value);
+      });
+    };
+
+    if (data.p2_reasons_a) setCheckedValues('p2_reasonA', data.p2_reasons_a);
+    if (data.p2_reasons_b) setCheckedValues('p2_reasonB', data.p2_reasons_b);
+    if (data.p3_checks) setCheckedValues('p3_check', data.p3_checks);
+
     if (data.p3_diff_main) document.getElementById('p3_diffMain').value = data.p3_diff_main;
     if (data.p3_diff_approach) document.getElementById('p3_diffApproach').value = data.p3_diff_approach;
     if (data.p3_diff_sentence) document.getElementById('p3_diffSentence').value = data.p3_diff_sentence;
@@ -421,9 +458,21 @@
     if (data.p3_action_type) document.getElementById('p3_actionType').value = data.p3_action_type;
     if (data.p3_etc) document.getElementById('p3_etc').value = data.p3_etc;
 
+    // 🟢 [보완] Page 4 해석 오류 문장 배열 복원
+    if (data.p4_sentences && Array.isArray(data.p4_sentences)) {
+      data.p4_sentences.forEach((s, idx) => {
+        const num = idx + 1;
+        if (s) {
+          if (document.getElementById(`p4_sent${num}_orig`)) document.getElementById(`p4_sent${num}_orig`).value = s.orig || '';
+          if (document.getElementById(`p4_sent${num}_old`)) document.getElementById(`p4_sent${num}_old`).value = s.old || '';
+          if (document.getElementById(`p4_sent${num}_new`)) document.getElementById(`p4_sent${num}_new`).value = s.new || '';
+        }
+      });
+    }
+
     if (data.p4_questions) document.getElementById('p4_questions').value = data.p4_questions;
 
-    // ⭐ [핵심] 선생님 피드백(teacher_comment)을 p4_comment 창에 연결!
+    // 선생님 피드백(teacher_comment) 연결
     const commentBox = document.getElementById('p4_comment');
     if (commentBox) {
       if (data.teacher_comment) {
