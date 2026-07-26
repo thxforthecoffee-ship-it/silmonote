@@ -291,7 +291,7 @@
     document.getElementById('p2_correct_reason').value = data.p2_correct_reason || data.lecture_evidence || '';
     
     let reasonText = '';
-    if (Array.isArray(data.p2_reasons_a)) reasonText = data.p2_reasons_a.join(', ');
+    if (Array.isArray(data.p2_reasons_a)) reasonText = data.p2_reasons_a.join('\n');
     else reasonText = data.p2_reasons_a || data.wrong_reasons || '';
     document.getElementById('p2_reasons_a').value = reasonText;
     document.getElementById('p2_words').value = data.p2_words || data.vocab_list || data.word_vocab || '';
@@ -344,7 +344,7 @@
       ],
       p2_subject: document.getElementById('p2_subject').value,
       p2_correct_reason: document.getElementById('p2_correct_reason').value,
-      p2_reasons_a: document.getElementById('p2_reasons_a').value ? [document.getElementById('p2_reasons_a').value] : [],
+      p2_reasons_a: document.getElementById('p2_reasons_a').value,
       p2_words: document.getElementById('p2_words').value,
       p3_diff_main: document.getElementById('p3_diff_main').value,
       p3_diff_approach: document.getElementById('p3_diff_approach').value,
@@ -388,7 +388,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     loadNoteForEdit();
 
-    // 엔터키 자동 저장 차단
+    // 엔터키 자동 제출 방지 (Textarea는 제외)
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Enter') {
         if (event.target.tagName.toUpperCase() !== 'TEXTAREA') {
