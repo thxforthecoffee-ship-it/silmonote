@@ -429,6 +429,12 @@
 
     // 페이지가 열릴 때 기존 데이터 자동 불러오기 실행
     window.addEventListener('DOMContentLoaded', loadScoreData);
+    // 엔터 키 눌렀을 때 자동으로 폼 제출(저장)되는 현상 방지
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+    event.preventDefault();
+  }
+});
   </script>
 </body>
 </html>
