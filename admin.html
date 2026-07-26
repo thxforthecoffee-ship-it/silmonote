@@ -98,32 +98,44 @@
 
         const allItems = [];
 
+        // 분석지 데이터 매핑
         if (scores) {
           scores.forEach(s => {
             allItems.push({
               id: s.id,
               type: 'score',
               title: `[분석지] ${s.exam_title || '모의고사'}`,
-              user_name: s.user_name || '이름 없음',
-              class_name: s.class_name || '-',
+              user_name: s.user_name || s.student_name || '이름 없음',
+              class_name: s.class_name || s.user_class || '-',
               score_text: `${s.real_score || '-'}점 (${s.real_grade || '-'}등급)`,
               created_at: s.created_at,
-              viewUrl: `score_view.html?id=${s.id}&role=admin` // 🟢 &role=admin 추가
+              viewUrl: `score_view.html?id=${s.id}&role=admin`
             });
           });
         }
 
+        // 오답노트 데이터 매핑 (이름/반 다각도 추출 로직 적용)
         if (notes) {
           notes.forEach(n => {
+            // content가 JSON 객체일 경우 안전하게 파싱
+            let contentObj = n.content || {};
+            if (typeof contentObj === 'string') {
+              try { contentObj = JSON.parse(contentObj); } catch(e) {}
+            }
+
+            // DB 컬럼 및 content 내부 모든 경로 탐색
+            const name = n.user_name || n.student_name || n.name || contentObj.user_name || contentObj.student_name || '이름 없음';
+            const className = n.class_name || n.user_class || n.student_class || contentObj.user_class || '-';
+
             allItems.push({
               id: n.id,
               type: 'note',
               title: `[오답노트] ${n.exam_title || '모의고사'} (${n.question_info || ''})`,
-              user_name: n.user_name || '이름 없음',
-              class_name: n.class_name || '-',
+              user_name: name,
+              class_name: className,
               score_text: n.teacher_comment ? '피드백 완료 🟢' : '제출 완료 🟡',
               created_at: n.created_at,
-              viewUrl: `view.html?id=${n.id}&role=admin` // 🟢 &role=admin 추가
+              viewUrl: `view.html?id=${n.id}&role=admin`
             });
           });
         }
