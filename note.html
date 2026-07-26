@@ -274,7 +274,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  // 탭 전환 기능
   function switchTab(pageNum) {
     document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
       btn.classList.toggle('active', idx === pageNum - 1);
@@ -284,39 +283,16 @@
     });
   }
 
-  // 오늘 날짜 자동 세팅
   document.getElementById('testDate').valueAsDate = new Date();
 
-  // Supabase 설정
   const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
   const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
   const supabaseClient = window.supabase.createClient(url, key);
 
-  // 데이터 저장/수정 함수
   async function saveDeepNote(e) {
     e.preventDefault();
 
     const { data: { user } } = await supabaseClient.auth.getUser();
-
-    // 🟢 로그인된 사용자의 프로필(이름, 반) 가져오기 로직 추가
-    let userName = '이름 없음';
-    let className = '-';
-
-    if (user) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        userName = profile.name || user.user_metadata?.name || '이름 없음';
-        className = profile.class_name || profile.user_class || user.user_metadata?.class_name || '-';
-      } else if (user.user_metadata) {
-        userName = user.user_metadata.name || '이름 없음';
-        className = user.user_metadata.class_name || '-';
-      }
-    }
 
     const getCheckedValues = (name) => {
       return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
@@ -324,16 +300,10 @@
 
     const noteData = {
       user_id: user ? user.id : null,
-      user_name: userName,       // 🟢 이름 저장 추가
-      student_name: userName,    // 🟢 호환성용 추가
-      class_name: className,     // 🟢 반 저장 추가
-      user_class: className,     // 🟢 호환성용 추가
-
       test_date: document.getElementById('testDate')?.value || '',
       exam_title: document.getElementById('examTitle')?.value || '',
       question_info: document.getElementById('questionInfo')?.value || '',
 
-      // PAGE 1
       p1_time: document.getElementById('p1_time')?.value || '',
       p1_choice: document.getElementById('p1_choice')?.value || '',
       p1_result: document.getElementById('p1_result')?.value || '',
@@ -349,7 +319,6 @@
         document.getElementById('p1_opt5')?.value || ''
       ],
 
-      // PAGE 2
       p2_subject: document.getElementById('p2_subject')?.value || '',
       p2_correct_reason: document.getElementById('p2_correctReason')?.value || '',
       p2_reasons_a: getCheckedValues('p2_reasonA'),
@@ -358,7 +327,6 @@
       p2_reasons_b: getCheckedValues('p2_reasonB'),
       p2_words: (document.getElementById('p2_words1')?.value || '') + '\n' + (document.getElementById('p2_words2')?.value || ''),
 
-      // PAGE 3
       p3_diff_main: document.getElementById('p3_diffMain')?.value || '',
       p3_diff_approach: document.getElementById('p3_diffApproach')?.value || '',
       p3_diff_sentence: document.getElementById('p3_diffSentence')?.value || '',
@@ -369,7 +337,6 @@
       p3_checks: getCheckedValues('p3_check'),
       p3_etc: document.getElementById('p3_etc')?.value || '',
 
-      // PAGE 4
       p4_sentences: [
         { orig: document.getElementById('p4_sent1_orig')?.value || '', old: document.getElementById('p4_sent1_old')?.value || '', new: document.getElementById('p4_sent1_new')?.value || '' },
         { orig: document.getElementById('p4_sent2_orig')?.value || '', old: document.getElementById('p4_sent2_old')?.value || '', new: document.getElementById('p4_sent2_new')?.value || '' },
@@ -396,7 +363,6 @@
     }
   }
 
-  // 데이터 불러오기 함수 (체크박스 및 문항 복원 완벽 보완)
   async function loadNoteData() {
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
@@ -410,7 +376,6 @@
       
     if (error || !data) return;
 
-    // 단일 input 및 textarea 자동 채우기
     if (data.test_date) document.getElementById('testDate').value = data.test_date;
     if (data.exam_title) document.getElementById('examTitle').value = data.exam_title;
     if (data.question_info) document.getElementById('questionInfo').value = data.question_info;
@@ -437,7 +402,6 @@
     if (data.p2_etc_reason_a) document.getElementById('p2_etcReasonA').value = data.p2_etc_reason_a;
     if (data.p2_words) document.getElementById('p2_words1').value = data.p2_words;
 
-    // 🟢 [보완] 체크박스 복원 함수
     const setCheckedValues = (name, values) => {
       if (!Array.isArray(values)) return;
       document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
@@ -458,7 +422,6 @@
     if (data.p3_action_type) document.getElementById('p3_actionType').value = data.p3_action_type;
     if (data.p3_etc) document.getElementById('p3_etc').value = data.p3_etc;
 
-    // 🟢 [보완] Page 4 해석 오류 문장 배열 복원
     if (data.p4_sentences && Array.isArray(data.p4_sentences)) {
       data.p4_sentences.forEach((s, idx) => {
         const num = idx + 1;
@@ -472,7 +435,6 @@
 
     if (data.p4_questions) document.getElementById('p4_questions').value = data.p4_questions;
 
-    // 선생님 피드백(teacher_comment) 연결
     const commentBox = document.getElementById('p4_comment');
     if (commentBox) {
       if (data.teacher_comment) {
