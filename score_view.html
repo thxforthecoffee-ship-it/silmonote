@@ -199,7 +199,10 @@
         backBtn.onclick = () => location.href = 'main.html';
         navHomeLink.href = 'main.html';
         saveCommentBtn.style.display = 'none';
-        if (editBtn) editBtn.style.display = 'block';
+        if (editBtn) {
+          editBtn.style.display = 'block';
+        editBtn.onclick = () => location.href = 'score.html?id=' + scoreId; // 
+        }
       }
 
       if (!scoreId) {
