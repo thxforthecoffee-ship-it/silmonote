@@ -377,10 +377,14 @@
       }
     }
 
-// 페이지가 열릴 때 엔터 키 자동 제출 완전 방지 적용
+// 1. 페이지 로드 시 기존 노트 데이터 불러오기 실행
 window.addEventListener('DOMContentLoaded', () => {
+  loadNoteDetail(); // 👈 기존에 있던 데이터 불러오기 함수 실행 (수정 모드 작동)
+
+  // 2. input 입력창에서 엔터 키 눌렀을 때 자동 저장 완전 차단
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Enter') {
+      // 입력 태그가 TEXTAREA가 아니면 엔터 키의 저장 동작을 강제로 막음
       if (event.target.tagName.toUpperCase() !== 'TEXTAREA') {
         event.preventDefault();
         return false;
