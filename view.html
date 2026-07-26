@@ -377,7 +377,9 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', loadNoteDetail);
+    window.addEventListener('DOMContentLoaded', () => {
+      loadNoteDetail();
+    });
   </script>
 </body>
 </html>
