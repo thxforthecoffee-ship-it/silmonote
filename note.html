@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>실모기록 - 프리미엄 오답 분석</title>
+  <title>실모기록 - 오답노트 작성/수정</title>
   <style>
     * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
     body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #111; }
@@ -50,7 +50,7 @@
   </div>
 
   <form id="noteForm" onsubmit="event.preventDefault(); saveNote();">
-    <!-- 기본 정보 카드가 상단에 위치합니다 -->
+    <!-- 기본 정보 카드 -->
     <div class="top-info-card">
       <div class="grid-4">
         <div>
@@ -227,7 +227,7 @@
   const urlParams = new URLSearchParams(window.location.search);
   const noteId = urlParams.get('id');
 
-  // 오늘 날짜 기본값 설정
+  // 오늘 날짜 기본값
   document.getElementById('test_date').value = new Date().toISOString().substring(0, 10);
 
   // 탭 변경
@@ -242,7 +242,7 @@
 
   // 수정 모드 시 데이터 불러오기
   async function loadNoteForEdit() {
-    if (!noteId) return;
+    if (!noteId) return; // 새 작성일 때는 빈 입력창 유지
     document.getElementById('pageTitle').innerText = "✏️ 오답노트 수정하기";
     
     const { data: note, error } = await supabaseClient
@@ -264,7 +264,7 @@
       }
     }
 
-    // 기본 정보 채우기
+    // 기본 정보
     if (data.user_name) document.getElementById('user_name').value = data.user_name;
     if (data.test_date) document.getElementById('test_date').value = data.test_date;
     if (data.exam_title) document.getElementById('exam_title').value = data.exam_title;
@@ -321,7 +321,7 @@
     document.getElementById('p4_questions').value = data.p4_questions || data.questions || data.question_text || '';
   }
 
-  // 노트 저장하기 (생성 또는 업데이트)
+  // 노트 저장 (생성 / 업데이트)
   async function saveNote() {
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
@@ -380,16 +380,15 @@
       saveBtn.disabled = false;
       saveBtn.innerText = "🎉 4페이지 심화 오답노트 저장하기";
     } else {
-      alert(noteId ? "🎉 노트 수정이 성공적으로 완료되었습니다!" : "🎉 4페이지 심화 오답노트가 성공적으로 저장되었습니다!");
+      alert(noteId ? "🎉 노트 수정이 완료되었습니다!" : "🎉 4페이지 심화 오답노트가 성공적으로 저장되었습니다!");
       location.href = noteId ? `view.html?id=${noteId}` : 'main.html';
     }
   }
 
-  // 초기화 및 엔터키 방지
   window.addEventListener('DOMContentLoaded', () => {
     loadNoteForEdit();
 
-    // input 태그에서 엔터 쳤을 때 자동 제출 차단
+    // 엔터키 자동 저장 차단
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Enter') {
         if (event.target.tagName.toUpperCase() !== 'TEXTAREA') {
