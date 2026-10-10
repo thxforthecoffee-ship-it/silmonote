@@ -45,6 +45,18 @@
       .grid { grid-template-columns: 1fr; }
       .recent-link { flex-direction: column; align-items: flex-start; gap: 5px; }
     }
+
+    /* 학생 제출 기록: 검색, 필터, 더 보기 */
+    .history-controls { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+    .history-controls input, .history-controls select { padding:10px 12px; min-height:42px; background:#fff; border:1px solid #ced4da; border-radius:8px; font-size:14px; }
+    .history-controls input { flex:1; min-width:180px; }
+    .history-meta { color:#6c757d; font-size:13px; margin:0 0 8px; }
+    .history-actions { text-align:center; margin-top:16px; }
+    .history-more { cursor:pointer; background:#fff; border:1px solid #007bff; border-radius:8px; padding:11px 24px; color:#007bff; font-weight:bold; }
+    .history-more[hidden] { display:none; }
+    .recent-title { overflow-wrap:anywhere; }
+    .recent-link { gap:10px; }
+    @media (max-width:768px) { .history-controls input, .history-controls select { width:100%; } }
   </style>
 </head>
 <body>
@@ -83,10 +95,22 @@
     </div>
 
     <div class="recent-section">
-      <h2>📋 최근 제출 및 피드백 현황 (클릭 시 상세 보기)</h2>
+      <h2>📋 나의 제출 기록 및 피드백 현황 (클릭 시 상세 보기)</h2>
+      <div class="history-controls">
+        <input id="historySearch" type="search" placeholder="모의고사명 · 문항번호 검색" aria-label="내 기록 검색">
+        <select id="historyType" aria-label="기록 종류 선택">
+          <option value="all">전체 기록</option>
+          <option value="note">심화 오답노트</option>
+          <option value="score">종합 분석지</option>
+        </select>
+      </div>
+      <p class="history-meta" id="historyMeta" role="status" aria-live="polite">기록을 불러오는 중입니다...</p>
       <ul class="recent-list" id="recentList">
         <li class="loading-text">데이터를 불러오는 중입니다...</li>
       </ul>
+      <div class="history-actions">
+        <button class="history-more" id="historyMore" type="button" hidden>이전 기록 더 보기 ↓</button>
+      </div>
     </div>
   </div>
 
@@ -96,114 +120,147 @@
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
-    async function loadRecentActivity() {
-      const recentList = document.getElementById('recentList');
-      const { data: { user } } = await supabaseClient.auth.getUser();
 
-      if (!user) {
-        location.href = "index.html";
+    // 기존 Supabase 데이터는 변경하지 않고 로그인 사용자의 기록만 조회합니다.
+    const HISTORY_PAGE_SIZE = 10;
+    let allHistory = [];
+    let historyVisible = HISTORY_PAGE_SIZE;
+
+    async function fetchMyRecords(tableName, userId) {
+      const batchSize = 250;
+      let offset = 0;
+      const rows = [];
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from(tableName).select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, offset + batchSize - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < batchSize) break;
+        offset += batchSize;
+      }
+      return rows;
+    }
+
+    function renderHistory() {
+      const recentList = document.getElementById('recentList');
+      const search = document.getElementById('historySearch').value.trim().toLocaleLowerCase();
+      const type = document.getElementById('historyType').value;
+      const filtered = allHistory.filter(item =>
+        (type === 'all' || item.type === type) &&
+        (!search || item.searchText.toLocaleLowerCase().includes(search))
+      );
+      const visible = filtered.slice(0, historyVisible);
+      document.getElementById('historyMeta').textContent =
+        `전체 ${allHistory.length}건 · 검색 결과 ${filtered.length}건 · ${visible.length}건 표시`;
+      document.getElementById('historyMore').hidden = visible.length >= filtered.length;
+      recentList.replaceChildren();
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'loading-text';
+        empty.textContent = allHistory.length === 0
+          ? '아직 제출된 기록이 없습니다. 분석지나 오답노트를 작성해 보세요!'
+          : '검색 조건에 맞는 기록이 없습니다.';
+        recentList.appendChild(empty);
         return;
       }
 
-      // 로그인한 사용자 이름 표시
-      if(user.user_metadata && user.user_metadata.full_name) {
-        document.getElementById('user-name-display').innerText = user.user_metadata.full_name + ' 학생';
+      for (const item of visible) {
+        const li = document.createElement('li');
+        li.className = 'recent-item';
+        const link = document.createElement('a');
+        link.className = 'recent-link';
+        link.href = item.viewUrl;
+
+        const info = document.createElement('div');
+        const title = document.createElement('span');
+        title.className = 'recent-title';
+        title.textContent = item.title;
+        const badge = document.createElement('span');
+        badge.style.cssText = 'margin-left:10px;font-weight:bold;font-size:13px;';
+        badge.style.color = item.feedbackDone ? '#28a745' : (item.type === 'score' ? '#007bff' : '#ff9800');
+        badge.textContent = item.badge;
+        info.append(title, badge);
+
+        const date = document.createElement('span');
+        date.className = 'recent-date';
+        date.textContent = item.date;
+        link.append(info, date);
+        li.appendChild(link);
+        recentList.appendChild(li);
       }
+    }
 
+    async function loadRecentActivity() {
+      const recentList = document.getElementById('recentList');
       try {
-        // 1. 오답노트 (notes) 불러오기
-        let notesQuery = supabaseClient.from('notes').select('*').order('created_at', { ascending: false }).limit(10);
-        const { data: notes, error: notesErr } = await notesQuery;
-
-        // 2. 분석지 (score_reports) 불러오기
-        const { data: scores, error: scoresErr } = await supabaseClient
-          .from('score_reports')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (notesErr || scoresErr) {
-          console.error(notesErr || scoresErr);
-          recentList.innerHTML = '<li class="loading-text" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</li>';
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) {
+          location.href = 'index.html';
           return;
         }
+        if (user.user_metadata && user.user_metadata.full_name) {
+          document.getElementById('user-name-display').textContent = user.user_metadata.full_name + ' 학생';
+        }
 
-        const allItems = [];
-
-        // 오답노트 가공 (선생님 피드백 완벽 확인)
-        if (notes) {
-          notes.forEach(n => {
-            if (!n.user_id || n.user_id === user.id) {
-              const content = n.content || {};
-              // 피드백 데이터가 어디 들어가있든 정밀 체크
-              const hasComment = (n.teacher_comment && n.teacher_comment.trim() !== '') || 
-                                 (content.teacher_comment && content.teacher_comment.trim() !== '') || 
-                                 (content.comment && content.comment.trim() !== '');
-
-              allItems.push({
-                id: n.id,
-                type: 'note',
-                title: `[심화 오답노트] ${n.exam_title || '모의고사'} ${n.question_info || ''}`,
-                badge: hasComment ? '피드백 완료 🟢' : '제출 완료 🟡',
-                date: n.created_at ? n.created_at.split('T')[0] : '-',
-                created_at: n.created_at,
-                // ⭐ 오답노트는 view.html로 연결 (학생용 읽기전용) ⭐
-                viewUrl: `view.html?id=${n.id}`
-              });
-            }
+        const [notes, scores] = await Promise.all([
+          fetchMyRecords('notes', user.id),
+          fetchMyRecords('score_reports', user.id)
+        ]);
+        const hasText = value => typeof value === 'string' && value.trim().length > 0;
+        const history = [];
+        for (const n of notes) {
+          const content = n.content && typeof n.content === 'object' ? n.content : {};
+          const feedbackDone = [n.teacher_comment, content.teacher_comment, content.comment].some(hasText);
+          const examName = n.exam_title || '모의고사';
+          const questionInfo = n.question_info || '';
+          history.push({
+            type: 'note',
+            title: `[심화 오답노트] ${examName} ${questionInfo}`.trim(),
+            searchText: `${examName} ${questionInfo}`,
+            badge: feedbackDone ? '피드백 완료 🟢' : '제출 완료 🟡',
+            feedbackDone,
+            date: n.created_at ? String(n.created_at).slice(0, 10) : '-',
+            created_at: n.created_at,
+            viewUrl: `view.html?id=${encodeURIComponent(n.id)}`
           });
         }
-
-        // 분석지 가공
-        if (scores) {
-          scores.forEach(s => {
-            if (!s.user_id || s.user_id === user.id) {
-              const scoreText = s.real_score ? `${s.real_score}점` : '';
-              const gradeText = s.real_grade ? ` (${s.real_grade}등급)` : '';
-              const badgeText = (scoreText || gradeText) ? `${scoreText}${gradeText}` : '제출 완료 🟡';
-
-              allItems.push({
-                id: s.id,
-                type: 'score',
-                title: `[모의고사 분석지] ${s.exam_title || '모의고사'}`,
-                badge: badgeText,
-                date: s.created_at ? s.created_at.split('T')[0] : '-',
-                created_at: s.created_at,
-                // ⭐ 분석지는 score_view.html로 연결 (학생용 읽기전용) ⭐
-                viewUrl: `score_view.html?id=${s.id}`
-              });
-            }
+        for (const s of scores) {
+          const examName = s.exam_title || '모의고사';
+          const hasScore = s.real_score !== null && s.real_score !== undefined && s.real_score !== '';
+          const hasGrade = s.real_grade !== null && s.real_grade !== undefined && s.real_grade !== '';
+          const feedbackDone = hasText(s.teacher_comment);
+          const badge = (hasScore || hasGrade)
+            ? `${hasScore ? s.real_score + '점' : ''}${hasGrade ? ' (' + s.real_grade + '등급)' : ''}`
+            : '제출 완료 🟡';
+          history.push({
+            type: 'score',
+            title: `[모의고사 분석지] ${examName}`,
+            searchText: examName,
+            badge: feedbackDone ? badge + ' · 피드백 완료 🟢' : badge,
+            feedbackDone,
+            date: s.created_at ? String(s.created_at).slice(0, 10) : '-',
+            created_at: s.created_at,
+            viewUrl: `score_view.html?id=${encodeURIComponent(s.id)}`
           });
         }
-
-        allItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-        if (allItems.length === 0) {
-          recentList.innerHTML = '<li class="loading-text">아직 제출된 기록이 없습니다. 분석지나 오답노트를 작성해 보세요!</li>';
-          return;
-        }
-
-        recentList.innerHTML = '';
-        allItems.slice(0, 5).forEach(item => {
-          const li = document.createElement('li');
-          li.className = 'recent-item';
-          const badgeColor = item.badge.includes('🟢') ? '#28a745' : (item.type === 'score' ? '#007bff' : '#ff9800');
-
-          li.innerHTML = `
-            <a href="${item.viewUrl}" class="recent-link">
-              <div>
-                <span class="recent-title">${item.title}</span>
-                <span style="color:${badgeColor}; margin-left:10px; font-weight:bold; font-size:13px;">${item.badge}</span>
-              </div>
-              <div class="recent-date">${item.date}</div>
-            </a>
-          `;
-          recentList.appendChild(li);
-        });
-
+        allHistory = history.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        historyVisible = HISTORY_PAGE_SIZE;
+        renderHistory();
       } catch (err) {
-        console.error(err);
-        recentList.innerHTML = '<li class="loading-text" style="color:red;">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</li>';
+        console.error('제출 기록 조회 오류:', err);
+        document.getElementById('historyMeta').textContent = '기록을 불러오지 못했습니다.';
+        document.getElementById('historyMore').hidden = true;
+        recentList.replaceChildren();
+        const errorLi = document.createElement('li');
+        errorLi.className = 'loading-text';
+        errorLi.style.color = 'red';
+        errorLi.textContent = '데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+        recentList.appendChild(errorLi);
       }
     }
 
@@ -213,7 +270,21 @@
       location.href = 'index.html';
     }
 
-    window.addEventListener('DOMContentLoaded', loadRecentActivity);
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('historySearch').addEventListener('input', () => {
+        historyVisible = HISTORY_PAGE_SIZE;
+        renderHistory();
+      });
+      document.getElementById('historyType').addEventListener('change', () => {
+        historyVisible = HISTORY_PAGE_SIZE;
+        renderHistory();
+      });
+      document.getElementById('historyMore').addEventListener('click', () => {
+        historyVisible += HISTORY_PAGE_SIZE;
+        renderHistory();
+      });
+      loadRecentActivity();
+    });
   </script>
 </body>
 </html>
