@@ -86,51 +86,50 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-access.js"></script>
   <script>
     const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
+  AppAccess.watch(supabaseClient);
 
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
-    const userRole = urlParams.get('role'); 
-
-    const IS_ADMIN = (userRole === 'admin');
+    let IS_ADMIN = false;
+    let recordReady = false;
+    let mutationBusy = false;
 
     function goBack() {
       location.href = IS_ADMIN ? 'admin.html' : 'main.html';
     }
 
     function goToEdit() {
-      if (noteId) {
-        location.href = `note.html?id=${noteId}`;
+      if (recordReady && !IS_ADMIN && noteId) {
+        location.href = `note.html?id=${encodeURIComponent(noteId)}`;
       }
     }
 
     async function requestDelete() {
-      if (!noteId) {
-        alert("노트 ID를 찾을 수 없습니다.");
-        return;
-      }
-
-      const confirmDelete = confirm("관리자에게 이 노트의 삭제를 요청하시겠습니까?");
-      if (!confirmDelete) return;
-
-      const { error } = await supabaseClient
-        .from('notes')
-        .update({ delete_requested: true })
-        .eq('id', noteId);
-
-      if (error) {
-        alert("삭제 요청 중 오류가 발생했습니다: " + error.message);
-      } else {
-        alert("삭제 요청이 완료되었습니다. 관리자 확인 후 삭제될 예정입니다.");
+      if (!recordReady || IS_ADMIN || mutationBusy) return;
+      if (!confirm('관리자에게 이 노트를 휴지통으로 이동하도록 요청하시겠습니까?')) return;
+      mutationBusy = true;
+      const button = document.getElementById('deleteReqBtn');
+      button.disabled = true;
+      try {
+        await AppAccess.updateActive(supabaseClient, 'notes', noteId, { delete_requested: true }, false, true);
+        alert('삭제 요청이 완료되었습니다. 관리자 확인 후 휴지통으로 이동됩니다.');
         location.href = 'main.html';
-      }
+      } catch (error) { alert(error.message); }
+      finally { mutationBusy = false; button.disabled = false; }
     }
 
     async function loadNoteDetail() {
       const container = document.getElementById('reportContainer');
+      try {
+      if (!noteId) throw AppAccess.unavailable();
+      const loaded = await AppAccess.loadActive(supabaseClient, 'notes', noteId);
+      let note = loaded.data;
+      IS_ADMIN = loaded.access.isAdmin;
       const backLink = document.getElementById('backLink');
       const bottomBackBtn = document.getElementById('bottomBackBtn');
       const editBtn = document.getElementById('editBtn');
@@ -155,17 +154,6 @@
         return;
       }
 
-      const { data: note, error } = await supabaseClient
-        .from('notes')
-        .select('*')
-        .eq('id', noteId)
-        .single();
-
-      if (error || !note) {
-        container.innerHTML = '<p style="color:red; text-align:center;">데이터를 불러오지 못했습니다.</p>';
-        return;
-      }
-
       if (note.delete_requested && deleteReqBtn) {
         deleteReqBtn.innerText = '⏳ 삭제 요청됨';
         deleteReqBtn.disabled = true;
@@ -185,6 +173,9 @@
         }
       }
 
+      // Escape every untrusted value before the legacy template is composed.
+      note = AppAccess.escapeDeep(note);
+      data = AppAccess.escapeDeep(data);
       const solveTime = data.p1_time || data.solve_time || '-';
       const firstChoice = data.p1_choice || data.first_choice || '-';
       const isCorrect = data.p1_result || data.is_correct || '-';
@@ -235,7 +226,8 @@
       const vocabList = data.p2_words || data.word_vocab || data.vocab_list || '기록 없음';
       const questions = data.p4_questions || data.question_text || data.questions || '질문 없음';
 
-      const feedbackText = note.teacher_comment || data.teacher_comment || data.comment || '';
+      const feedbackValue = note.teacher_comment || data.teacher_comment || data.comment || '';
+      const feedbackText = typeof feedbackValue === 'string' ? feedbackValue : '';
 
       let feedbackHtml = '';
       if (IS_ADMIN) {
@@ -360,21 +352,26 @@
           ${feedbackHtml}
         </div>
       `;
+      recordReady = true;
+      } catch (error) {
+        recordReady = false;
+        container.textContent = error.message;
+        document.getElementById('editBtn').style.display = 'none';
+        document.getElementById('deleteReqBtn').style.display = 'none';
+      }
     }
 
     async function saveTeacherComment() {
-      if (!IS_ADMIN) return;
-      const comment = document.getElementById('teacherCommentInput').value;
-      const { error } = await supabaseClient
-        .from('notes')
-        .update({ teacher_comment: comment })
-        .eq('id', noteId);
-
-      if (error) {
-        alert('피드백 저장 실패: ' + error.message);
-      } else {
-        alert('피드백이 성공적으로 저장되었습니다! 🟢');
-      }
+      if (!IS_ADMIN || !recordReady || mutationBusy) return;
+      mutationBusy = true;
+      const button = document.querySelector('.save-btn');
+      button.disabled = true;
+      try {
+        const comment = document.getElementById('teacherCommentInput').value;
+        await AppAccess.updateActive(supabaseClient, 'notes', noteId, { teacher_comment: comment }, true);
+        alert('피드백이 저장되었습니다.');
+      } catch (error) { alert(error.message); }
+      finally { mutationBusy = false; button.disabled = false; }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
