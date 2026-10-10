@@ -45,6 +45,20 @@
       .grid { grid-template-columns: 1fr; }
       .recent-link { flex-direction: column; align-items: flex-start; gap: 5px; }
     }
+
+    /* 학생 제출 기록: 검색, 필터, 더 보기 */
+    .history-controls { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+    .history-controls input, .history-controls select { padding:10px 12px; min-height:42px; background:#fff; border:1px solid #ced4da; border-radius:8px; font-size:14px; }
+    .history-controls input { flex:1; min-width:180px; }
+    .history-meta { color:#6c757d; font-size:13px; margin:0 0 8px; }
+    .history-actions { text-align:center; margin-top:16px; }
+    .history-more { cursor:pointer; background:#fff; border:1px solid #007bff; border-radius:8px; padding:11px 24px; color:#007bff; font-weight:bold; }
+    .history-more[hidden] { display:none; }
+    .history-more:disabled { cursor:wait; opacity:0.65; }
+    .history-more:focus-visible, .history-controls :focus-visible { outline:3px solid #0056b3; outline-offset:3px; }
+    .recent-title { overflow-wrap:anywhere; }
+    .recent-link { gap:10px; }
+    @media (max-width:768px) { .history-controls input, .history-controls select { width:100%; } }
   </style>
 </head>
 <body>
@@ -83,10 +97,22 @@
     </div>
 
     <div class="recent-section">
-      <h2>📋 최근 제출 및 피드백 현황 (클릭 시 상세 보기)</h2>
+      <h2>📋 내 기록 전체 보기 (클릭 시 상세 보기)</h2>
+      <div class="history-controls">
+        <input id="historySearch" type="search" placeholder="모의고사명 · 문항번호 검색" aria-label="내 기록 검색" disabled>
+        <select id="historyType" aria-label="기록 종류 선택" disabled>
+          <option value="all">전체 기록</option>
+          <option value="note">심화 오답노트</option>
+          <option value="score">종합 분석지</option>
+        </select>
+      </div>
+      <p class="history-meta" id="historyMeta" role="status" aria-live="polite">기록을 불러오는 중입니다...</p>
       <ul class="recent-list" id="recentList">
         <li class="loading-text">데이터를 불러오는 중입니다...</li>
       </ul>
+      <div class="history-actions">
+        <button class="history-more" id="historyMore" type="button" hidden>이전 기록 더 보기 ↓</button>
+      </div>
     </div>
   </div>
 
@@ -96,116 +122,208 @@
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
-    async function loadRecentActivity() {
-      const recentList = document.getElementById('recentList');
-      const { data: { user } } = await supabaseClient.auth.getUser();
 
-      if (!user) {
-        location.href = "index.html";
+    // 로그인 사용자의 기록만 한 번에 최대 11개씩 조회합니다 (표시 10개 + 다음 페이지 확인).
+    const HISTORY_PAGE_SIZE = 10;
+    let historyItems = [];
+    let historyCursors = { note: null, score: null };
+    let historyUserId = null;
+    let historyHasMore = true;
+    let historyLoading = false;
+    let historyError = false;
+    let historyGeneration = 0;
+    let historySearchTimer;
+
+    // PostgREST의 or 필터에 들어가는 값은 따옴표/역슬래시를 이스케이프합니다.
+    function filterValue(value) {
+      return '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    }
+
+    async function fetchMyRecords(tableName, userId, cursor, search) {
+      let query = supabaseClient.from(tableName).select('*').eq('user_id', userId);
+      if (search) {
+        // 공백으로 나눈 검색어를 모두 포함하도록 하여 시험명 + 문항번호 검색도 지원합니다.
+        for (const term of new Set(search.split(/\s+/))) {
+          const pattern = `%${term.replace(/[\\%_]/g, '\\$&')}%`;
+          query = tableName === 'notes'
+            ? query.or(`exam_title.ilike.${filterValue(pattern)},question_info.ilike.${filterValue(pattern)}`)
+            : query.ilike('exam_title', pattern);
+        }
+      }
+      // 생성일 + 고유 ID 커서: 앞쪽 기록이 추가/삭제돼도 offset처럼 뒤 기록을 건너뛰지 않습니다.
+      if (cursor) {
+        if (cursor.created_at == null) {
+          query = query.is('created_at', null).lt('id', cursor.id);
+        } else {
+          const date = filterValue(cursor.created_at);
+          query = query.or(`created_at.lt.${date},and(created_at.eq.${date},id.lt.${filterValue(cursor.id)}),created_at.is.null`);
+        }
+      }
+      const { data, error } = await query
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
+        .limit(HISTORY_PAGE_SIZE + 1);
+      if (error) throw error;
+      return data || [];
+    }
+
+    function compareRecordDates(a, b) {
+      if (a.created_at == null) return b.created_at == null ? 0 : -1;
+      if (b.created_at == null) return 1;
+      const milliseconds = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (milliseconds) return milliseconds;
+      // PostgreSQL 타임스탬프의 밀리초 이하 정밀도도 유지합니다.
+      const fraction = value => ((String(value).match(/\.(\d+)/) || [])[1] || '').padEnd(6, '0').slice(3, 6);
+      return fraction(a.created_at).localeCompare(fraction(b.created_at));
+    }
+
+    function historyItem(record, type) {
+      const hasText = value => typeof value === 'string' && value.trim().length > 0;
+      const content = record.content && typeof record.content === 'object' ? record.content : {};
+      const feedbackDone = type === 'note'
+        ? [record.teacher_comment, content.teacher_comment, content.comment].some(hasText)
+        : hasText(record.teacher_comment);
+      const examName = record.exam_title || '모의고사';
+      const hasValue = value => value !== null && value !== undefined && value !== '';
+      const scoreBadge = (hasValue(record.real_score) || hasValue(record.real_grade))
+        ? `${hasValue(record.real_score) ? record.real_score + '점' : ''}${hasValue(record.real_grade) ? ' (' + record.real_grade + '등급)' : ''}`
+        : '제출 완료 🟡';
+      return {
+        type,
+        title: type === 'note' ? `[심화 오답노트] ${examName} ${record.question_info || ''}`.trim() : `[모의고사 분석지] ${examName}`,
+        badge: type === 'note' ? (feedbackDone ? '피드백 완료 🟢' : '제출 완료 🟡') : (feedbackDone ? scoreBadge + ' · 피드백 완료 🟢' : scoreBadge),
+        feedbackDone,
+        date: record.created_at ? String(record.created_at).slice(0, 10) : '-',
+        viewUrl: `${type === 'note' ? 'view.html' : 'score_view.html'}?id=${encodeURIComponent(record.id)}`
+      };
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('recentList');
+      const meta = document.getElementById('historyMeta');
+      const more = document.getElementById('historyMore');
+      list.setAttribute('aria-busy', String(historyLoading));
+      meta.textContent = historyLoading ? '기록을 불러오는 중입니다...'
+        : historyError ? '기록을 불러오지 못했습니다. 다시 시도해 주세요.'
+        : `${historyItems.length}건 표시 · ${historyHasMore ? '이전 기록을 더 볼 수 있습니다.' : '모든 기록을 확인했습니다.'}`;
+      more.hidden = !historyHasMore && !historyError;
+      more.disabled = historyLoading;
+      more.textContent = historyLoading ? '불러오는 중...' : historyError ? '다시 시도' : '이전 기록 더 보기 ↓';
+      list.replaceChildren();
+      if (historyItems.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'loading-text';
+        const filtered = document.getElementById('historySearch').value.trim() || document.getElementById('historyType').value !== 'all';
+        empty.textContent = historyLoading ? '데이터를 불러오는 중입니다...'
+          : historyError ? '데이터를 불러오는 중 오류가 발생했습니다.'
+          : filtered ? '검색 조건에 맞는 기록이 없습니다.'
+          : '아직 제출된 기록이 없습니다. 분석지나 오답노트를 작성해 보세요!';
+        list.appendChild(empty);
         return;
       }
-
-      // 로그인한 사용자 이름 표시
-      if(user.user_metadata && user.user_metadata.full_name) {
-        document.getElementById('user-name-display').innerText = user.user_metadata.full_name + ' 학생';
-      }
-
-      try {
-        // 1. 오답노트 (notes) 불러오기
-        let notesQuery = supabaseClient.from('notes').select('*').order('created_at', { ascending: false }).limit(10);
-        const { data: notes, error: notesErr } = await notesQuery;
-
-        // 2. 분석지 (score_reports) 불러오기
-        const { data: scores, error: scoresErr } = await supabaseClient
-          .from('score_reports')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (notesErr || scoresErr) {
-          console.error(notesErr || scoresErr);
-          recentList.innerHTML = '<li class="loading-text" style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</li>';
-          return;
-        }
-
-        const allItems = [];
-
-        // 오답노트 가공 (선생님 피드백 완벽 확인)
-        if (notes) {
-          notes.forEach(n => {
-            if (!n.user_id || n.user_id === user.id) {
-              const content = n.content || {};
-              // 피드백 데이터가 어디 들어가있든 정밀 체크
-              const hasComment = (n.teacher_comment && n.teacher_comment.trim() !== '') || 
-                                 (content.teacher_comment && content.teacher_comment.trim() !== '') || 
-                                 (content.comment && content.comment.trim() !== '');
-
-              allItems.push({
-                id: n.id,
-                type: 'note',
-                title: `[심화 오답노트] ${n.exam_title || '모의고사'} ${n.question_info || ''}`,
-                badge: hasComment ? '피드백 완료 🟢' : '제출 완료 🟡',
-                date: n.created_at ? n.created_at.split('T')[0] : '-',
-                created_at: n.created_at,
-                // ⭐ 오답노트는 view.html로 연결 (학생용 읽기전용) ⭐
-                viewUrl: `view.html?id=${n.id}`
-              });
-            }
-          });
-        }
-
-        // 분석지 가공
-        if (scores) {
-          scores.forEach(s => {
-            if (!s.user_id || s.user_id === user.id) {
-              const scoreText = s.real_score ? `${s.real_score}점` : '';
-              const gradeText = s.real_grade ? ` (${s.real_grade}등급)` : '';
-              const badgeText = (scoreText || gradeText) ? `${scoreText}${gradeText}` : '제출 완료 🟡';
-
-              allItems.push({
-                id: s.id,
-                type: 'score',
-                title: `[모의고사 분석지] ${s.exam_title || '모의고사'}`,
-                badge: badgeText,
-                date: s.created_at ? s.created_at.split('T')[0] : '-',
-                created_at: s.created_at,
-                // ⭐ 분석지는 score_view.html로 연결 (학생용 읽기전용) ⭐
-                viewUrl: `score_view.html?id=${s.id}`
-              });
-            }
-          });
-        }
-
-        allItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-        if (allItems.length === 0) {
-          recentList.innerHTML = '<li class="loading-text">아직 제출된 기록이 없습니다. 분석지나 오답노트를 작성해 보세요!</li>';
-          return;
-        }
-
-        recentList.innerHTML = '';
-        allItems.slice(0, 5).forEach(item => {
-          const li = document.createElement('li');
-          li.className = 'recent-item';
-          const badgeColor = item.badge.includes('🟢') ? '#28a745' : (item.type === 'score' ? '#007bff' : '#ff9800');
-
-          li.innerHTML = `
-            <a href="${item.viewUrl}" class="recent-link">
-              <div>
-                <span class="recent-title">${item.title}</span>
-                <span style="color:${badgeColor}; margin-left:10px; font-weight:bold; font-size:13px;">${item.badge}</span>
-              </div>
-              <div class="recent-date">${item.date}</div>
-            </a>
-          `;
-          recentList.appendChild(li);
-        });
-
-      } catch (err) {
-        console.error(err);
-        recentList.innerHTML = '<li class="loading-text" style="color:red;">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</li>';
+      for (const item of historyItems) {
+        const li = document.createElement('li');
+        li.className = 'recent-item';
+        const link = document.createElement('a');
+        link.className = 'recent-link';
+        link.href = item.viewUrl;
+        const info = document.createElement('div');
+        const title = document.createElement('span');
+        title.className = 'recent-title';
+        title.textContent = item.title;
+        const badge = document.createElement('span');
+        badge.style.cssText = 'margin-left:10px;font-weight:bold;font-size:13px;';
+        badge.style.color = item.feedbackDone ? '#28a745' : (item.type === 'score' ? '#007bff' : '#ff9800');
+        badge.textContent = item.badge;
+        info.append(title, badge);
+        const date = document.createElement('span');
+        date.className = 'recent-date';
+        date.textContent = item.date;
+        link.append(info, date);
+        li.appendChild(link);
+        list.appendChild(li);
       }
     }
+
+    function startHistorySearch(delay = 0) {
+      if (!historyUserId) return;
+      clearTimeout(historySearchTimer);
+      historyGeneration++; // 이전 검색의 늦은 응답은 현재 결과를 바꿀 수 없습니다.
+      historyItems = [];
+      historyCursors = { note: null, score: null };
+      historyHasMore = true;
+      historyError = false;
+      historyLoading = true;
+      renderHistory();
+      historySearchTimer = setTimeout(() => loadHistoryPage(true), delay);
+    }
+
+    async function loadHistoryPage(startingSearch = false) {
+      if (!historyUserId || (historyLoading && !startingSearch) || !historyHasMore) return;
+      const generation = ++historyGeneration;
+      historyLoading = true;
+      historyError = false;
+      renderHistory();
+      const search = document.getElementById('historySearch').value.trim();
+      const type = document.getElementById('historyType').value;
+      try {
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (generation !== historyGeneration) return;
+        if (authError || !user || user.id !== historyUserId) {
+          location.href = 'index.html';
+          return;
+        }
+        const [notes, scores] = await Promise.all([
+          type === 'score' ? [] : fetchMyRecords('notes', user.id, historyCursors.note, search),
+          type === 'note' ? [] : fetchMyRecords('score_reports', user.id, historyCursors.score, search)
+        ]);
+        if (generation !== historyGeneration) return;
+        // 각 테이블의 서버 정렬을 유지하며 최신 10개만 병합합니다.
+        let n = 0, s = 0;
+        const nextItems = [];
+        const nextCursors = { ...historyCursors };
+        while (nextItems.length < HISTORY_PAGE_SIZE && (n < notes.length || s < scores.length)) {
+          const takeNote = s >= scores.length || (n < notes.length && compareRecordDates(notes[n], scores[s]) >= 0);
+          const record = takeNote ? notes[n++] : scores[s++];
+          const recordType = takeNote ? 'note' : 'score';
+          nextItems.push(historyItem(record, recordType));
+          nextCursors[recordType] = { id: record.id, created_at: record.created_at };
+        }
+        historyItems.push(...nextItems);
+        historyCursors = nextCursors;
+        historyHasMore = n < notes.length || s < scores.length;
+      } catch (err) {
+        if (generation !== historyGeneration) return;
+        // 현재 표시된 기록과 커서는 보존하여 같은 페이지를 안전하게 재시도합니다.
+        historyError = true;
+      } finally {
+        if (generation === historyGeneration) {
+          historyLoading = false;
+          renderHistory();
+        }
+      }
+    }
+
+    async function loadRecentActivity() {
+      try {
+        const { data: { user }, error } = await supabaseClient.auth.getUser();
+        if (error || !user) {
+          location.href = 'index.html';
+          return;
+        }
+        historyUserId = user.id;
+        if (user.user_metadata && user.user_metadata.full_name) {
+          document.getElementById('user-name-display').textContent = user.user_metadata.full_name + ' 학생';
+        }
+        document.getElementById('historySearch').disabled = false;
+        document.getElementById('historyType').disabled = false;
+        startHistorySearch();
+      } catch (err) {
+        document.getElementById('historyMeta').textContent = '로그인 상태를 확인하지 못했습니다. 새로고침해 주세요.';
+        document.getElementById('recentList').textContent = '';
+      }
+    }
+
 
     async function handleLogout() {
       await supabaseClient.auth.signOut();
@@ -213,7 +331,12 @@
       location.href = 'index.html';
     }
 
-    window.addEventListener('DOMContentLoaded', loadRecentActivity);
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('historySearch').addEventListener('input', () => startHistorySearch(250));
+      document.getElementById('historyType').addEventListener('change', () => startHistorySearch());
+      document.getElementById('historyMore').addEventListener('click', () => loadHistoryPage());
+      loadRecentActivity();
+    });
   </script>
 </body>
 </html>
