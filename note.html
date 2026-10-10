@@ -53,7 +53,8 @@
   </header>
 
   <div class="container">
-    <form id="deepNoteForm" onsubmit="saveDeepNote(event)">
+    <p id="editorStatus" role="status">접근 권한을 확인하는 중입니다...</p>
+    <form inert id="deepNoteForm" onsubmit="saveDeepNote(event)">
       
       <!-- 상단 공통 정보 -->
       <div class="card">
@@ -272,6 +273,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-access.js"></script>
 
 <script>
   function switchTab(pageNum) {
@@ -288,11 +290,18 @@
   const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
   const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
   const supabaseClient = window.supabase.createClient(url, key);
+  AppAccess.watch(supabaseClient);
 
+  let editorReady = false;
+  let saving = false;
   async function saveDeepNote(e) {
     e.preventDefault();
-
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!editorReady || saving) return;
+    saving = true;
+    const button = document.querySelector('.btn-submit');
+    button.disabled = true;
+    try {
+    const { user, version } = await AppAccess.requireAccess(supabaseClient);
 
     const getCheckedValues = (name) => {
       return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
@@ -350,31 +359,34 @@
 
     let result;
     if (noteId) {
-      result = await supabaseClient.from('notes').update(noteData).eq('id', noteId);
+      delete noteData.user_id;
+      await AppAccess.updateActive(supabaseClient, 'notes', noteId, noteData, false, true);
+      result = { error: null };
     } else {
-      result = await supabaseClient.from('notes').insert([noteData]);
+      result = await supabaseClient.from('notes').insert([noteData]).select('id::text').single();
+      if (!result.error && !result.data) throw new Error('저장된 기록을 확인하지 못했습니다.');
     }
 
+    AppAccess.assertCurrent(version);
     if (result.error) {
       alert('저장 중 오류가 발생했습니다: ' + result.error.message);
     } else {
       alert('🎉 4페이지 심화 오답노트가 성공적으로 저장되었습니다!');
       window.location.href = "main.html";
     }
+
+    } catch (error) { alert(error.message); }
+    finally { saving = false; button.disabled = !editorReady; }
   }
 
   async function loadNoteData() {
+    try {
+    await AppAccess.requireAccess(supabaseClient);
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
-    if (!noteId) return; 
-
-    const { data, error } = await supabaseClient
-      .from('notes')
-      .select('*')
-      .eq('id', noteId)
-      .single(); 
-      
-    if (error || !data) return;
+    let data = null;
+    if (noteId) ({ data } = await AppAccess.loadActive(supabaseClient, 'notes', noteId, true));
+    if (!noteId) { editorReady = true; document.getElementById('deepNoteForm').inert = false; document.getElementById('editorStatus').textContent = ''; return; }
 
     if (data.test_date) document.getElementById('testDate').value = data.test_date;
     if (data.exam_title) document.getElementById('examTitle').value = data.exam_title;
@@ -443,6 +455,11 @@
         commentBox.value = "아직 선생님 피드백이 등록되지 않았습니다.";
       }
     }
+    editorReady = true;
+    document.getElementById('deepNoteForm').inert = false;
+    document.getElementById('editorStatus').textContent = '';
+    } catch (error) { document.getElementById('editorStatus').textContent = error.message; }
+
   }
 
   window.addEventListener('DOMContentLoaded', loadNoteData);

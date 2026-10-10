@@ -361,7 +361,8 @@
   </header>
 
 
-  <div class="container">
+  <p id="detailStatus" role="status" style="text-align:center">접근 권한을 확인하는 중입니다...</p>
+  <div id="detailContent" class="container" hidden>
 
     <div class="card">
 
@@ -728,6 +729,7 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-access.js"></script>
 
 
   <script>
@@ -744,6 +746,7 @@
 
     const supabaseClient =
       window.supabase.createClient(url, key);
+  AppAccess.watch(supabaseClient);
 
 
     /* =========================================================
@@ -756,17 +759,9 @@
     const scoreId =
       urlParams.get('id');
 
-    const userRole =
-      urlParams.get('role');
-
-
-    /*
-      현재 구조에서는
-      URL에 role=admin이 있을 때만 관리자 화면으로 판단
-    */
-    const IS_ADMIN =
-      (userRole === 'admin');
-
+    let IS_ADMIN = false;
+    let recordReady = false;
+    let mutationBusy = false;
 
     /* =========================================================
        PDF
@@ -1037,6 +1032,11 @@
        ========================================================= */
 
     async function loadReportView() {
+      try {
+      if (!scoreId) throw AppAccess.unavailable();
+      const loaded = await AppAccess.loadActive(supabaseClient, 'score_reports', scoreId);
+      const data = loaded.data;
+      IS_ADMIN = loaded.access.isAdmin;
 
       /* -------------------------------------------------------
          권한별 UI
@@ -1103,7 +1103,7 @@
 
           editBtn.onclick = () => {
             location.href =
-              'score.html?id=' + scoreId;
+              'score.html?id=' + encodeURIComponent(scoreId);
           };
 
         }
@@ -1133,28 +1133,6 @@
       /* -------------------------------------------------------
          Supabase 데이터
          ------------------------------------------------------- */
-
-      const {
-        data,
-        error
-      } = await supabaseClient
-        .from('score_reports')
-        .select('*')
-        .eq('id', scoreId)
-        .single();
-
-
-      if (error || !data) {
-
-        console.error(error);
-
-        alert(
-          '데이터를 불러오지 못했습니다.'
-        );
-
-        return;
-      }
-
 
       /* =======================================================
          기본 데이터
@@ -1433,7 +1411,14 @@
          ======================================================= */
 
       renderTimeAllocation(data);
-
+      recordReady = true;
+      document.getElementById('detailContent').hidden = false;
+      document.getElementById('detailStatus').textContent = '';
+      } catch (error) {
+        recordReady = false;
+        document.getElementById('detailContent').hidden = true;
+        document.getElementById('detailStatus').textContent = error.message;
+      }
     }
 
 
@@ -1465,58 +1450,17 @@
        ========================================================= */
 
     async function saveTeacherComment() {
-
-      if (!IS_ADMIN) {
-        return;
-      }
-
-
-      const commentInput =
-        document.getElementById(
-          'teacherComment'
-        );
-
-
-      if (!commentInput) {
-        return;
-      }
-
-
-      const comment =
-        commentInput.value;
-
-
-      const {
-        error
-      } = await supabaseClient
-        .from('score_reports')
-        .update({
-          teacher_comment: comment
-        })
-        .eq('id', scoreId);
-
-
-      if (error) {
-
-        console.error(error);
-
-        alert(
-          '피드백 저장 실패: ' +
-          error.message
-        );
-
-      } else {
-
-        alert(
-          '✅ 선생님 피드백이 성공적으로 저장되었습니다!'
-        );
-
-        location.reload();
-
-      }
-
+      if (!IS_ADMIN || !recordReady || mutationBusy) return;
+      mutationBusy = true;
+      const button = document.getElementById('saveCommentBtn');
+      button.disabled = true;
+      try {
+        const comment = document.getElementById('teacherComment').value;
+        await AppAccess.updateActive(supabaseClient, 'score_reports', scoreId, { teacher_comment: comment }, true);
+        alert('선생님 피드백이 저장되었습니다.');
+      } catch (error) { alert(error.message); }
+      finally { mutationBusy = false; button.disabled = false; }
     }
-
 
     /* =========================================================
        페이지 로드

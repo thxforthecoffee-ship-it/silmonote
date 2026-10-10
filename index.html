@@ -2,10 +2,11 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>실모기록 - 로그인/회원가입</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 40px; }
-        .container { width: 400px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .container { width: min(400px, 100%); box-sizing: border-box; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #333; margin-bottom: 25px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
@@ -22,6 +23,7 @@
 
 <div class="container">
     <h2>실모기록 📝</h2>
+    <p id="accessMessage" role="status" aria-live="polite"></p>
     
     <!-- 입력 폼 -->
     <div class="form-group">
@@ -47,21 +49,30 @@
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
 
+    const messages = {pending: '⏳ 가입 승인 대기 중입니다. 승인 후 다시 로그인해 주세요.', login: '로그인 후 이용해 주세요.', session: '로그인 상태가 변경되었습니다. 다시 로그인해 주세요.'};
+    document.getElementById('accessMessage').textContent = messages[new URLSearchParams(location.search).get('reason')] || '';
+    let authBusy = false;
+    function setAuthBusy(value) { authBusy = value; document.querySelectorAll('button').forEach(button => button.disabled = value); }
+
     // 1. 회원가입 함수 (profiles 자동 생성)
     async function handleSignup() {
+        if (authBusy) return;
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const password = document.getElementById('password').value;
 
         if (!name || !email || !password) {
             alert("이름, 이메일, 비밀번호를 모두 입력해 주세요!");
             return;
         }
 
+        setAuthBusy(true);
+        try {
         // Auth 계정 생성
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
+            options: { data: { name, full_name: name } }
         });
 
         if (error) {
@@ -69,35 +80,27 @@
             return;
         }
 
-        // profiles 테이블에 학생 데이터 자동으로 추가 (is_approved: false)
-        if (data.user) {
-            const { error: profileError } = await supabaseClient
-                .from('profiles')
-                .insert([{ 
-                    id: data.user.id, 
-                    email: email, 
-                    name: name, 
-                    is_approved: false 
-                }]);
-
-            if (profileError) {
-                console.error("프로필 생성 에러:", profileError);
-            }
-        }
-
-        alert("회원가입 신청이 완료되었습니다! 🎉\n선생님의 승인 후 로그인하실 수 있습니다.");
+        alert(data.session
+            ? '회원가입 신청이 완료되었습니다. 선생님의 승인 후 이용할 수 있습니다.'
+            : '가입 안내 이메일을 확인해 주세요. 이메일 확인과 선생님의 승인 후 이용할 수 있습니다.');
+        } catch (error) {
+            alert('회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally { setAuthBusy(false); }
     }
 
     // 2. 로그인 함수
     async function handleLogin() {
+        if (authBusy) return;
         const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const password = document.getElementById('password').value;
 
         if (!email || !password) {
             alert("이메일과 비밀번호를 입력해 주세요!");
             return;
         }
 
+        setAuthBusy(true);
+        try {
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password,
@@ -108,6 +111,12 @@
             return;
         }
 
+        const { data: isAdmin, error: adminError } = await supabaseClient.rpc('is_admin');
+        if (adminError || typeof isAdmin !== 'boolean') {
+            alert('접근 권한을 확인하지 못했습니다. 잠시 후 다시 로그인해 주세요.');
+            return;
+        }
+        if (isAdmin) { window.location.href = 'admin.html'; return; }
         const userId = authData.user.id;
         const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
@@ -125,8 +134,10 @@
             window.location.href = "main.html";
         } else {
             alert("⏳ 아직 선생님의 승인을 받지 못했습니다.\n승인 후 다시 시도해 주세요!");
-            await supabaseClient.auth.signOut();
+            document.getElementById('accessMessage').textContent = messages.pending;
         }
+        } catch (error) { alert('로그인을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'); }
+        finally { setAuthBusy(false); }
     }
 </script>
 

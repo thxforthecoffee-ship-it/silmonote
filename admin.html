@@ -25,6 +25,19 @@
     .feedback-done { background: #dcfce7; color: #166534; }
     .feedback-pending { background: #f3f4f6; color: #4b5563; }
     .feedback-unknown { background: #fef3c7; color: #92400e; }
+    [hidden] { display:none !important; }
+    .table-scroll { overflow-x:auto; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .toolbar .btn { min-height:40px; }
+    .btn[aria-pressed="true"] { background:#1d4ed8; color:white; }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .btn:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #1d4ed8; outline-offset:3px; }
+    input[type="checkbox"] { width:20px; height:20px; cursor:pointer; }
+    td { overflow-wrap:anywhere; }
+    td .btn { margin:3px; }
+    #allSubmissionsList td:nth-child(5) { min-width:160px; }
+    #operationResults { line-height:1.6; }
+    @media(max-width:600px) { body { padding:12px; } .header { align-items:flex-start; gap:10px; } .header h2 { font-size:19px; } .card { padding:12px; } th,td { padding:8px; } }
   </style>
 </head>
 <body>
@@ -34,85 +47,47 @@
     <a href="main.html" class="btn btn-view">🏠 메인으로</a>
   </div>
 
-  <!-- 1. 가입 승인 대기 학생 -->
-  <div class="card">
-    <h3>⏳ 승인 대기 중인 학생</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>가입일</th>
-          <th>이름</th>
-          <th>반(Class)</th>
-          <th>승인 관리</th>
-        </tr>
-      </thead>
-      <tbody id="pendingStudentsList">
-        <tr><td colspan="4">승인 대기 학생을 불러오는 중...</td></tr>
-      </tbody>
-    </table>
+  <p id="accessStatus" class="card" role="status" aria-live="polite">관리자 권한을 확인하는 중입니다...</p>
+  <div id="adminContent" hidden>
+    <section class="card">
+      <h3>⏳ 승인 대기 중인 학생</h3>
+      <button id="refreshPending" type="button" class="btn btn-view">승인 대기 목록 새로고침</button>
+      <p id="pendingStatus" role="status" aria-live="polite"></p>
+      <div class="table-scroll"><table>
+        <thead><tr><th scope="col">가입일</th><th scope="col">이름</th><th scope="col">반(Class)</th><th scope="col">승인 관리</th></tr></thead>
+        <tbody id="pendingStudentsList"></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <h3>📊 전체 학생 제출 현황 (모의고사 분석지 &amp; 오답노트)</h3>
+      <div class="toolbar" aria-label="제출 현황과 휴지통">
+        <button id="activeTab" type="button" class="btn btn-view" aria-pressed="true">제출 현황</button>
+        <button id="trashTab" type="button" class="btn btn-view" aria-pressed="false">휴지통</button>
+        <button id="refreshList" type="button" class="btn btn-view">목록 새로고침</button>
+      </div>
+      <p>선택한 기록은 휴지통으로 이동한 뒤 복원할 수 있습니다.</p>
+      <div class="toolbar">
+        <label><input id="selectVisible" type="checkbox"> 표시된 기록 선택 (최대 100건)</label>
+        <span id="selectionCount" role="status" aria-live="polite">0건 선택</span>
+        <button id="moveSelected" type="button" class="btn btn-delete" disabled>선택한 기록 휴지통으로 이동</button>
+        <button id="restoreSelected" type="button" class="btn btn-approve" hidden disabled>선택한 기록 복원</button>
+      </div>
+      <p id="submissionStatus" role="status" aria-live="polite"></p>
+      <ul id="operationResults" aria-live="polite" aria-label="기록별 처리 결과"></ul>
+      <div class="table-scroll"><table>
+        <thead><tr><th scope="col">선택</th><th scope="col">제출일자</th><th scope="col">학생 이름</th><th scope="col">피드백 여부</th><th scope="col">구분 및 시험명</th><th scope="col">점수 / 상태</th><th scope="col">관리</th></tr></thead>
+        <tbody id="allSubmissionsList"></tbody>
+      </table></div>
+      <button id="moreSubmissions" type="button" class="btn btn-view" hidden>이전 기록 더 보기</button>
+    </section>
   </div>
-
-  <!-- 2. 전체 제출 현황 -->
-  <div class="card">
-    <h3>📊 전체 학생 제출 현황 (모의고사 분석지 & 오답노트)</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>제출일자</th>
-          <th>학생 이름</th>
-          <th>피드백 여부</th>
-          <th>구분 및 시험명</th>
-          <th>점수 / 상태</th>
-          <th>관리</th>
-        </tr>
-      </thead>
-      <tbody id="allSubmissionsList">
-        <tr><td colspan="6">제출 현황을 불러오는 중...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-access.js"></script>
   <script>
     const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
     const supabaseClient = window.supabase.createClient(url, key);
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadPendingStudents();
-      loadAllSubmissions();
-    });
-
-    // 1. 승인 대기 학생 불러오기
-    async function loadPendingStudents() {
-      const container = document.getElementById('pendingStudentsList');
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('is_approved', false);
-
-      if (error || !data || data.length === 0) {
-        container.innerHTML = '<tr><td colspan="4">현재 승인 대기 중인 학생이 없습니다. 🎉</td></tr>';
-        return;
-      }
-
-      container.innerHTML = data.map(st => `
-        <tr>
-          <td>${st.created_at ? st.created_at.split('T')[0] : '-'}</td>
-          <td><b>${st.name || st.username || '이름 없음'}</b></td>
-          <td>${st.class_name || '-'}</td>
-          <td><button class="btn btn-approve" onclick="approveStudent('${st.id}')">승인하기</button></td>
-        </tr>
-      `).join('');
-    }
-
-    // 학생 가입 승인
-    async function approveStudent(userId) {
-      if (!confirm("이 학생을 승인하시겠습니까?")) return;
-      const { error } = await supabaseClient.from('profiles').update({ is_approved: true }).eq('id', userId);
-      if (error) alert("승인 실패: " + error.message);
-      else { alert("승인되었습니다!"); loadPendingStudents(); }
-    }
+  AppAccess.watch(supabaseClient);
 
     // 상세 보기와 같은 우선순위로 피드백을 확인한다.
     function getFeedbackStatus(record, type) {
@@ -149,144 +124,271 @@
       return comment.trim() ? 'done' : 'pending';
     }
 
-    // 2. 전체 제출 현황 불러오기 (학생 이름 연동)
-    async function loadAllSubmissions() {
-      const container = document.getElementById('allSubmissionsList');
+    const PAGE_SIZE = 50;
+    const MAX_SELECTION = 100;
+    let adminAuthorized = false;
+    let currentMode = 'active';
+    let items = [];
+    let selected = new Map();
+    let offsets = { notes: 0, score_reports: 0 };
+    let hasMore = { notes: true, score_reports: true };
+    let listGeneration = 0;
+    let listLoading = false;
+    let mutationBusy = false;
+    let pendingLoading = false;
+    const itemKey = item => `${item.type}:${item.id}`;
+    const byId = id => document.getElementById(id);
+
+    function rowMessage(container, columns, message) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = columns;
+      cell.textContent = message;
+      row.appendChild(cell);
+      container.replaceChildren(row);
+    }
+    function button(label, style, handler) {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `btn ${style}`;
+      node.textContent = label;
+      node.addEventListener('click', handler);
+      return node;
+    }
+    async function requireAdmin() {
+      try { return await AppAccess.requireAccess(supabaseClient, true); }
+      catch (error) {
+        adminAuthorized = false;
+        listGeneration++;
+        items = [];
+        selected.clear();
+        byId('adminContent').hidden = true;
+        byId('allSubmissionsList').replaceChildren();
+        byId('pendingStudentsList').replaceChildren();
+        byId('accessStatus').textContent = error.message;
+        throw error;
+      }
+    }
+    function updateControls() {
+      const busy = !adminAuthorized || listLoading || mutationBusy;
+      for (const id of ['activeTab', 'trashTab', 'refreshList', 'selectVisible', 'moreSubmissions']) byId(id).disabled = busy;
+      byId('moveSelected').hidden = currentMode !== 'active';
+      byId('restoreSelected').hidden = currentMode !== 'trash';
+      byId('moveSelected').disabled = busy || selected.size === 0;
+      byId('restoreSelected').disabled = busy || selected.size === 0;
+      byId('selectionCount').textContent = `${selected.size}건 선택 (최대 ${MAX_SELECTION}건)`;
+      byId('moreSubmissions').hidden = !hasMore.notes && !hasMore.score_reports;
+      byId('activeTab').setAttribute('aria-pressed', String(currentMode === 'active'));
+      byId('trashTab').setAttribute('aria-pressed', String(currentMode === 'trash'));
+      byId('selectVisible').checked = items.length > 0 && selected.size === items.length;
+      byId('selectVisible').indeterminate = selected.size > 0 && selected.size < items.length;
+      document.querySelectorAll('#allSubmissionsList input, #allSubmissionsList button').forEach(node => node.disabled = busy);
+      document.querySelectorAll('#pendingStudentsList button').forEach(node => node.disabled = mutationBusy || pendingLoading || !adminAuthorized);
+      byId('refreshPending').disabled = mutationBusy || pendingLoading || !adminAuthorized;
+    }
+    async function loadPendingStudents() {
+      if (!adminAuthorized || pendingLoading) return;
+      pendingLoading = true;
+      updateControls();
       try {
-        // 기존 조회 결과만 사용한다. 피드백 확인을 위한 추가 요청은 하지 않는다.
-        const { data: profiles, error: profilesError } = await supabaseClient.from('profiles').select('*');
-        const { data: notes, error: notesError } = await supabaseClient.from('notes').select('*');
-        const { data: scores, error: scoresError } = await supabaseClient.from('score_reports').select('*');
-        if (profilesError || notesError || scoresError || !Array.isArray(profiles) || !Array.isArray(notes) || !Array.isArray(scores)) {
-          throw new Error('제출 현황 조회 실패');
-        }
-        const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
-        const combined = [];
-
-        notes.forEach(n => {
-          const user = profileMap.get(n.user_id) || {};
-          combined.push({
-            type: 'note',
-            id: n.id,
-            date: n.test_date || (n.created_at ? n.created_at.split('T')[0] : '-'),
-            userName: user.name || user.username || n.user_name || '홍길동',
-            feedback: getFeedbackStatus(n, 'note'),
-            title: n.exam_title || '제목 없음',
-            status: '정상 제출',
-            isDeleteRequested: n.delete_requested
-          });
-        });
-        scores.forEach(s => {
-          const user = profileMap.get(s.user_id) || {};
-          combined.push({
-            type: 'score',
-            id: s.id,
-            date: s.test_date || (s.created_at ? s.created_at.split('T')[0] : '-'),
-            userName: user.name || user.username || '홍길동',
-            feedback: getFeedbackStatus(s, 'score'),
-            title: s.exam_title || '제목 없음',
-            status: `${s.total_score || 0}점 (${s.grade || '-'}등급)`,
-            isDeleteRequested: false
-          });
-        });
-
-        // 날짜 최신순 정렬
-        combined.sort((a, b) => new Date(b.date) - new Date(a.date));
-        if (combined.length === 0) {
-          container.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
-          return;
-        }
-
-        const feedbackLabels = { done: '작성 완료', pending: '미작성', unknown: '확인 불가' };
-        const fragment = document.createDocumentFragment();
-        combined.forEach(item => {
+        const access = await requireAdmin();
+        const { data, error } = await supabaseClient.from('profiles')
+          .select('id,name,created_at').eq('is_approved', false)
+          .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(101);
+        AppAccess.assertCurrent(access.version);
+        if (!adminAuthorized) return;
+        if (error || !Array.isArray(data)) throw new Error('승인 대기 목록을 불러오지 못했습니다. 다시 시도해 주세요.');
+        byId('pendingStatus').textContent = data.length > 100 ? '가장 오래된 신청 100건 표시. 승인 후 새로고침하면 다음 신청을 확인할 수 있습니다.' : `${data.length}명 승인 대기`;
+        const container = byId('pendingStudentsList');
+        if (!data.length) { rowMessage(container, 4, '현재 승인 대기 중인 학생이 없습니다.'); return; }
+        container.replaceChildren();
+        for (const profile of data.slice(0, 100)) {
           const row = document.createElement('tr');
-          const addCell = text => {
-            const cell = document.createElement('td');
-            if (text != null) cell.textContent = text;
-            row.appendChild(cell);
-            return cell;
-          };
-          addCell(item.date);
-          const name = document.createElement('b');
-          name.textContent = item.userName;
-          addCell().appendChild(name);
-          const feedback = document.createElement('span');
-          feedback.className = `badge-feedback feedback-${item.feedback}`;
-          feedback.textContent = feedbackLabels[item.feedback];
-          addCell().appendChild(feedback);
-          const title = addCell();
-          const badge = document.createElement('span');
-          badge.className = item.type === 'note' ? 'badge-note' : 'badge-score';
-          badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]';
-          title.appendChild(badge);
-          title.appendChild(document.createTextNode(` ${item.title}`));
-          const status = addCell();
-          if (item.isDeleteRequested) {
-            const deletion = document.createElement('span');
-            deletion.className = 'badge-del';
-            deletion.textContent = '🚨 삭제 요청됨';
-            status.appendChild(deletion);
-          } else {
-            status.textContent = item.status;
+          for (const value of [String(profile.created_at || '').slice(0, 10) || '-', profile.name || profile.username || '이름 없음', profile.class_name || '-']) {
+            const cell = document.createElement('td'); cell.textContent = value; row.appendChild(cell);
           }
-          const controls = addCell();
-          const addButton = (label, className, action) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `btn ${className}`;
-            button.textContent = label;
-            button.addEventListener('click', action);
-            controls.appendChild(button);
-            controls.appendChild(document.createTextNode(' '));
-          };
-          addButton('상세 보기', 'btn-view', () => {
-            const page = item.type === 'note' ? 'view.html' : 'score_view.html';
-            location.href = `${page}?id=${encodeURIComponent(item.id)}&role=admin`;
-          });
-          if (item.isDeleteRequested) {
-            addButton('🚨 삭제 승인', 'btn-delete', () => confirmDeleteNote(item.id));
-            addButton('거절', 'btn-reject', () => rejectDeleteNote(item.id));
-          }
-          fragment.appendChild(row);
+          const cell = document.createElement('td');
+          cell.appendChild(button('승인하기', 'btn-approve', () => approveStudent(profile.id)));
+          row.appendChild(cell); container.appendChild(row);
+        }
+      } catch (error) { byId('pendingStatus').textContent = error.message; }
+      finally { pendingLoading = false; updateControls(); }
+    }
+    async function approveStudent(userId) {
+      if (!adminAuthorized || mutationBusy || pendingLoading) return;
+      if (!confirm('이 학생의 가입을 승인하시겠습니까?')) return;
+      mutationBusy = true; updateControls();
+      try {
+        const access = await requireAdmin();
+        const { data, error } = await supabaseClient.from('profiles').update({ is_approved: true })
+          .eq('id', userId).eq('is_approved', false).select('id').maybeSingle();
+        AppAccess.assertCurrent(access.version);
+        if (error || !data) throw new Error('승인을 확인하지 못했습니다. 다른 관리자가 처리했는지 새로고침해 주세요.');
+        byId('pendingStatus').textContent = '가입이 승인되었습니다.';
+        await loadPendingStudents();
+      } catch (error) { byId('pendingStatus').textContent = error.message; }
+      finally { mutationBusy = false; updateControls(); }
+    }
+    function toItem(record, type, profileMap) {
+      if (typeof record.id !== 'string' || !/^(0|-?[1-9]\d*)$/.test(record.id)) throw new Error('기록 ID를 안전하게 읽지 못했습니다. 관리자에게 문의해 주세요.');
+      const profile = profileMap.get(record.user_id) || {};
+      return {
+        type, id: record.id,
+        date: record.test_date || String(record.created_at || '').slice(0, 10) || '-',
+        createdAt: record.created_at || '', deletedAt: record.deleted_at,
+        userName: profile.name || profile.username || record.user_name || '이름 없음',
+        feedback: getFeedbackStatus(record, type), title: record.exam_title || '제목 없음',
+        status: type === 'note' ? '정상 제출' : `${record.real_score ?? record.total_score ?? 0}점 (${record.real_grade ?? record.grade ?? '-'}등급)`,
+        isDeleteRequested: type === 'note' && record.delete_requested === true
+      };
+    }
+    async function fetchSubmissions(table, mode, offset) {
+      const fields = table === 'notes'
+        ? 'id::text,user_id,user_name,test_date,created_at,exam_title,teacher_comment,delete_requested,deleted_at'
+        : 'id::text,user_id,user_name,created_at,exam_title,teacher_comment,real_score,real_grade,deleted_at';
+      let query = supabaseClient.from(table).select(fields);
+      query = mode === 'trash' ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
+      const { data, error } = await query.order('created_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
+      if (error || !Array.isArray(data)) throw new Error('제출 현황을 불러오지 못했습니다. 다시 시도해 주세요.');
+      return data;
+    }
+    async function loadAllSubmissions(reset = true) {
+      if (!adminAuthorized || (!reset && listLoading)) return;
+      const generation = ++listGeneration;
+      const mode = currentMode;
+      if (reset) { offsets = { notes: 0, score_reports: 0 }; hasMore = { notes: true, score_reports: true }; items = []; selected.clear(); }
+      listLoading = true;
+      renderSubmissions();
+      byId('submissionStatus').textContent = '제출 현황을 불러오는 중입니다...';
+      try {
+        const access = await requireAdmin();
+        const [notes, scores] = await Promise.all([
+          hasMore.notes ? fetchSubmissions('notes', mode, offsets.notes) : [],
+          hasMore.score_reports ? fetchSubmissions('score_reports', mode, offsets.score_reports) : []
+        ]);
+        const userIds = [...new Set([...notes, ...scores].map(record => record.user_id).filter(Boolean))];
+        const profiles = userIds.length
+          ? await supabaseClient.from('profiles').select('id,name').in('id', userIds)
+          : { data: [], error: null };
+        AppAccess.assertCurrent(access.version);
+        if (generation !== listGeneration || !adminAuthorized) return;
+        if (profiles.error || !Array.isArray(profiles.data)) throw new Error('학생 이름을 확인하지 못했습니다. 다시 시도해 주세요.');
+        const profileMap = new Map(profiles.data.map(profile => [profile.id, profile]));
+        const nextItems = [...notes.map(record => toItem(record, 'note', profileMap)), ...scores.map(record => toItem(record, 'score', profileMap))];
+        const merged = new Map([...items, ...nextItems].map(item => [itemKey(item), item]));
+        items = [...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || itemKey(a).localeCompare(itemKey(b)));
+        offsets.notes += notes.length; offsets.score_reports += scores.length;
+        hasMore = { notes: notes.length === PAGE_SIZE, score_reports: scores.length === PAGE_SIZE };
+        byId('submissionStatus').textContent = `${mode === 'trash' ? '휴지통' : '제출 현황'} ${items.length}건 표시. 목록이 변경되었다면 새로고침해 주세요.`;
+      } catch (error) { if (generation === listGeneration) byId('submissionStatus').textContent = error.message; }
+      finally { if (generation === listGeneration) { listLoading = false; renderSubmissions(); } }
+    }
+    function renderSubmissions() {
+      const container = byId('allSubmissionsList');
+      container.replaceChildren();
+      if (!items.length) rowMessage(container, 7, listLoading ? '불러오는 중...' : currentMode === 'trash' ? '휴지통이 비어 있습니다.' : '표시할 제출 내역이 없습니다.');
+      const feedbackLabels = { done: '작성 완료', pending: '미작성', unknown: '확인 불가' };
+      for (const item of items) {
+        const row = document.createElement('tr');
+        const cell = text => { const node = document.createElement('td'); if (text != null) node.textContent = text; row.appendChild(node); return node; };
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(itemKey(item));
+        checkbox.setAttribute('aria-label', `${item.userName} · ${item.type === 'note' ? '오답노트' : '분석지'} · ${item.title} 선택`);
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            if (selected.size >= MAX_SELECTION) { checkbox.checked = false; byId('submissionStatus').textContent = '한 번에 최대 100건까지 선택할 수 있습니다.'; return; }
+            selected.set(itemKey(item), item);
+          } else selected.delete(itemKey(item));
+          updateControls();
         });
-        container.replaceChildren(fragment);
-      } catch (error) {
-        container.innerHTML = '<tr><td colspan="6">제출 현황을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.</td></tr>';
+        cell().appendChild(checkbox); cell(item.date); cell(item.userName);
+        const feedback = document.createElement('span'); feedback.className = `badge-feedback feedback-${item.feedback}`; feedback.textContent = feedbackLabels[item.feedback]; cell().appendChild(feedback);
+        const title = cell(); const badge = document.createElement('span'); badge.className = item.type === 'note' ? 'badge-note' : 'badge-score'; badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]'; title.append(badge, document.createTextNode(` ${item.title}`));
+        cell(currentMode === 'trash' ? `휴지통 · ${String(item.deletedAt || '').slice(0, 10)}` : item.isDeleteRequested ? '🚨 삭제 요청됨' : item.status);
+        const controls = cell();
+        if (currentMode === 'active') {
+          controls.appendChild(button('상세 보기', 'btn-view', () => { location.href = `${item.type === 'note' ? 'view.html' : 'score_view.html'}?id=${encodeURIComponent(item.id)}`; }));
+          if (item.isDeleteRequested) controls.appendChild(button('삭제 요청 거절', 'btn-reject', () => rejectDeleteNote(item.id)));
+        } else controls.textContent = '복원 후 상세 보기 가능';
+        container.appendChild(row);
       }
+      updateControls();
     }
-
-    // 🚨 진짜 DB에서 삭제하는 함수
-    async function confirmDeleteNote(noteId) {
-      if (!confirm("정말로 이 오답노트를 영구 삭제하시겠습니까?")) return;
-
-      const { error } = await supabaseClient
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
-
-      if (error) {
-        alert("삭제 실패 (Supabase RLS 권한을 확인하세요): " + error.message);
-      } else {
-        alert("오답노트가 성공적으로 삭제되었습니다!");
-        loadAllSubmissions(); // 목록 새로고침
-      }
+    function switchMode(mode) {
+      if (mutationBusy || listLoading || mode === currentMode) return;
+      currentMode = mode;
+      byId('operationResults').replaceChildren();
+      loadAllSubmissions();
     }
-
-    // 삭제 거절 함수 (삭제 요청 취소)
+    function selectVisible() {
+      if (mutationBusy || listLoading) return;
+      if (byId('selectVisible').checked) {
+        for (const item of items) { if (selected.size >= MAX_SELECTION) break; selected.set(itemKey(item), item); }
+        if (items.length > MAX_SELECTION) byId('submissionStatus').textContent = '화면의 앞 100건을 선택했습니다. 한 번에 최대 100건까지 처리할 수 있습니다.';
+      } else selected.clear();
+      renderSubmissions();
+    }
+    async function applySelection(deleted) {
+      if (!adminAuthorized || mutationBusy || listLoading || !selected.size || selected.size > MAX_SELECTION || deleted !== (currentMode === 'active')) return;
+      const snapshot = [...selected.values()];
+      const verb = deleted ? '휴지통으로 이동' : '복원';
+      if (!confirm(`선택한 ${snapshot.length}건을 ${verb}하시겠습니까?${deleted ? '\n휴지통에서 다시 복원할 수 있습니다.' : '\n학생의 기록 목록에 다시 표시됩니다.'}`)) return;
+      mutationBusy = true; updateControls();
+      const outcomes = byId('operationResults'); outcomes.replaceChildren();
+      try {
+        const access = await requireAdmin();
+        const { data, error } = await supabaseClient.rpc('admin_set_submission_deleted', {
+          p_items: snapshot.map(item => ({ type: item.type, id: item.id })), p_deleted: deleted
+        });
+        AppAccess.assertCurrent(access.version);
+        if (error || !Array.isArray(data)) throw new Error('처리 결과를 확인하지 못했습니다. 자동 재시도하지 않았습니다. 목록을 새로고침해 상태를 확인해 주세요.');
+        const resultMap = new Map();
+        for (const result of data) {
+          const key = itemKey(result);
+          if (resultMap.has(key)) resultMap.set(key, { status: 'unknown' }); else resultMap.set(key, result);
+        }
+        const labels = { changed: `${verb} 완료`, already_deleted: '이미 휴지통에 있음', already_active: '이미 복원된 기록', not_found: '기록을 찾을 수 없음' };
+        for (const item of snapshot) {
+          const result = resultMap.get(itemKey(item));
+          const entry = document.createElement('li');
+          const validStatus = result?.status === 'changed' || result?.status === 'not_found' || result?.status === (deleted ? 'already_deleted' : 'already_active');
+          entry.textContent = `${item.userName} · ${item.title} (${item.type}:${item.id}): ${validStatus ? labels[result.status] : '처리 결과 확인 필요'}`;
+          outcomes.appendChild(entry);
+        }
+        await loadAllSubmissions();
+      } catch (error) { const entry = document.createElement('li'); entry.textContent = error.message; outcomes.appendChild(entry); }
+      finally { mutationBusy = false; updateControls(); }
+    }
     async function rejectDeleteNote(noteId) {
-      const { error } = await supabaseClient
-        .from('notes')
-        .update({ delete_requested: false })
-        .eq('id', noteId);
-
-      if (error) {
-        alert("처리 실패: " + error.message);
-      } else {
-        alert("삭제 요청을 거절했습니다.");
-        loadAllSubmissions();
-      }
+      if (!adminAuthorized || mutationBusy || listLoading) return;
+      if (!confirm('이 노트의 삭제 요청을 거절하시겠습니까?')) return;
+      mutationBusy = true; updateControls();
+      try {
+        await requireAdmin();
+        await AppAccess.updateActive(supabaseClient, 'notes', noteId, { delete_requested: false }, true);
+        await loadAllSubmissions();
+      } catch (error) { byId('submissionStatus').textContent = error.message; }
+      finally { mutationBusy = false; updateControls(); }
     }
+    async function initAdmin() {
+      byId('activeTab').addEventListener('click', () => switchMode('active'));
+      byId('trashTab').addEventListener('click', () => switchMode('trash'));
+      byId('refreshList').addEventListener('click', () => loadAllSubmissions());
+      byId('refreshPending').addEventListener('click', loadPendingStudents);
+      byId('selectVisible').addEventListener('change', selectVisible);
+      byId('moveSelected').addEventListener('click', () => applySelection(true));
+      byId('restoreSelected').addEventListener('click', () => applySelection(false));
+      byId('moreSubmissions').addEventListener('click', () => loadAllSubmissions(false));
+      try {
+        await requireAdmin();
+        adminAuthorized = true;
+        byId('adminContent').hidden = false;
+        byId('accessStatus').textContent = '';
+        await Promise.all([loadPendingStudents(), loadAllSubmissions()]);
+      } catch (error) { byId('accessStatus').textContent = error.message; }
+    }
+    window.addEventListener('DOMContentLoaded', initAdmin);
+
   </script>
 </body>
 </html>

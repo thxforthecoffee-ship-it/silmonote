@@ -349,7 +349,8 @@
 
 <div class="container">
 
-<form id="reportForm" onsubmit="saveReport(event)">
+<p id="editorStatus" role="status">접근 권한을 확인하는 중입니다...</p>
+<form inert id="reportForm" onsubmit="saveReport(event)">
 
 <div class="card">
 
@@ -943,6 +944,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-access.js"></script>
 
 
 <script>
@@ -955,6 +957,7 @@
 
   const supabaseClient =
     window.supabase.createClient(url, key);
+  AppAccess.watch(supabaseClient);
 
 
   /* ==========================================
@@ -1237,39 +1240,24 @@
      기존 데이터 불러오기
      ========================================== */
 
+  let editorReady = false;
+  let saving = false;
   async function loadScoreData() {
+    try {
+    await AppAccess.requireAccess(supabaseClient);
 
     if (!scoreId) {
 
       loadTimeAllocation([]);
-
+      editorReady = true;
+      document.getElementById('reportForm').inert = false;
+      document.getElementById('editorStatus').textContent = '';
       return;
 
     }
 
 
-    const { data, error } =
-      await supabaseClient
-
-        .from('score_reports')
-
-        .select('*')
-
-        .eq('id', scoreId)
-
-        .single();
-
-
-    if (error || !data) {
-
-      alert('기존 분석지를 불러오지 못했습니다.');
-
-      loadTimeAllocation([]);
-
-      return;
-
-    }
-
+    const { data } = await AppAccess.loadActive(supabaseClient, 'score_reports', scoreId, true);
 
     /* 기본 정보 */
 
@@ -1421,6 +1409,11 @@
       data.time_allocation
     );
 
+    editorReady = true;
+    document.getElementById('reportForm').inert = false;
+    document.getElementById('editorStatus').textContent = '';
+    } catch (error) { document.getElementById('editorStatus').textContent = error.message; }
+
   }
 
 
@@ -1431,6 +1424,8 @@
   async function saveReport(e) {
 
     e.preventDefault();
+    if (!editorReady || saving) return;
+    saving = true;
 
 
     const submitButton =
@@ -1449,8 +1444,7 @@
 
     try {
 
-      const { data: { user } } =
-        await supabaseClient.auth.getUser();
+      const { user, version } = await AppAccess.requireAccess(supabaseClient);
 
 
       const getCheckedValues =
@@ -1666,20 +1660,6 @@
       };
 
 
-      /* 선생님 코멘트 */
-
-      const teacherComment =
-        document.getElementById('teacherComment');
-
-
-      if (teacherComment) {
-
-        reportData.teacher_comment =
-          teacherComment.value;
-
-      }
-
-
       /* ==========================================
          신규 / 수정 저장
          ========================================== */
@@ -1691,19 +1671,8 @@
 
         /* 기존 분석지 수정 */
 
-        const { error } =
-          await supabaseClient
-
-            .from('score_reports')
-
-            .update(reportData)
-
-            .eq('id', scoreId);
-
-
-        if (error) {
-          throw error;
-        }
+        delete reportData.user_id;
+        await AppAccess.updateActive(supabaseClient, 'score_reports', scoreId, reportData, false, true);
 
       } else {
 
@@ -1716,7 +1685,7 @@
 
             .insert([reportData])
 
-            .select('id')
+            .select('id::text')
             .single();
 
 
@@ -1739,6 +1708,7 @@
       }
 
 
+      AppAccess.assertCurrent(version);
       /* ==========================================
          저장 성공
          → score_view.html로 이동
@@ -1772,7 +1742,7 @@
 
       }
 
-    }
+    } finally { saving = false; }
 
   }
 
@@ -1827,4 +1797,5 @@
 
 </body>
 </html>
+
 
