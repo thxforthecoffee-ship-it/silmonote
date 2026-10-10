@@ -21,6 +21,10 @@
     .badge-del { background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
     .badge-note { background: #ffe4e6; color: #e11d48; padding: 3px 6px; border-radius: 4px; font-weight: bold; }
     .badge-score { background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px; font-weight: bold; }
+    .badge-feedback { display: inline-block; padding: 3px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+    .feedback-done { background: #dcfce7; color: #166534; }
+    .feedback-pending { background: #f3f4f6; color: #4b5563; }
+    .feedback-unknown { background: #fef3c7; color: #92400e; }
   </style>
 </head>
 <body>
@@ -56,7 +60,7 @@
         <tr>
           <th>제출일자</th>
           <th>학생 이름</th>
-          <th>반(Class)</th>
+          <th>피드백 여부</th>
           <th>구분 및 시험명</th>
           <th>점수 / 상태</th>
           <th>관리</th>
@@ -110,81 +114,146 @@
       else { alert("승인되었습니다!"); loadPendingStudents(); }
     }
 
+    // 상세 보기와 같은 우선순위로 피드백을 확인한다.
+    function getFeedbackStatus(record, type) {
+      let data = record;
+      let contentUnknown = false;
+      if (type === 'note' && record.content != null && record.content !== '') {
+        let content = record.content;
+        if (typeof content === 'string') {
+          try {
+            content = content.trim() ? JSON.parse(content) : {};
+          } catch (error) {
+            contentUnknown = true;
+          }
+        }
+        if (!contentUnknown && content && typeof content === 'object' && !Array.isArray(content)) {
+          data = { ...record, ...content };
+        } else {
+          contentUnknown = true;
+        }
+      }
+
+      // 저장값이 손상되었거나 필드가 누락되면 미작성으로 단정하지 않는다.
+      const hasFeedbackFields = type === 'note'
+        ? ['teacher_comment', 'comment', 'content'].some(field => Object.prototype.hasOwnProperty.call(record, field))
+        : Object.prototype.hasOwnProperty.call(record, 'teacher_comment');
+      if (!hasFeedbackFields) return 'unknown';
+      const comment = type === 'note'
+        ? (record.teacher_comment || data.teacher_comment || data.comment || '')
+        : record.teacher_comment;
+      if (!comment && (contentUnknown || (type === 'note' && [record.teacher_comment, data.teacher_comment, data.comment]
+        .some(value => value != null && typeof value !== 'string')))) return 'unknown';
+      if (comment == null || comment === '') return 'pending';
+      if (typeof comment !== 'string') return 'unknown';
+      return comment.trim() ? 'done' : 'pending';
+    }
+
     // 2. 전체 제출 현황 불러오기 (학생 이름 연동)
     async function loadAllSubmissions() {
       const container = document.getElementById('allSubmissionsList');
+      try {
+        // 기존 조회 결과만 사용한다. 피드백 확인을 위한 추가 요청은 하지 않는다.
+        const { data: profiles, error: profilesError } = await supabaseClient.from('profiles').select('*');
+        const { data: notes, error: notesError } = await supabaseClient.from('notes').select('*');
+        const { data: scores, error: scoresError } = await supabaseClient.from('score_reports').select('*');
+        if (profilesError || notesError || scoresError || !Array.isArray(profiles) || !Array.isArray(notes) || !Array.isArray(scores)) {
+          throw new Error('제출 현황 조회 실패');
+        }
+        const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
+        const combined = [];
 
-      // 프로필(학생이름) 데이터 불러오기
-      const { data: profiles } = await supabaseClient.from('profiles').select('*');
-      const profileMap = {};
-      if (profiles) {
-        profiles.forEach(p => {
-          profileMap[p.id] = p;
-        });
-      }
-
-      // 오답노트 & 성적표 불러오기
-      const { data: notes } = await supabaseClient.from('notes').select('*');
-      const { data: scores } = await supabaseClient.from('score_reports').select('*');
-
-      let combined = [];
-
-      if (notes) {
         notes.forEach(n => {
-          const user = profileMap[n.user_id] || {};
+          const user = profileMap.get(n.user_id) || {};
           combined.push({
             type: 'note',
             id: n.id,
             date: n.test_date || (n.created_at ? n.created_at.split('T')[0] : '-'),
             userName: user.name || user.username || n.user_name || '홍길동',
-            className: user.class_name || n.class_name || '-',
-            title: `<span class="badge-note">[오답노트]</span> ${n.exam_title || '제목 없음'}`,
-            status: n.delete_requested ? '<span class="badge-del">🚨 삭제 요청됨</span>' : '정상 제출',
+            feedback: getFeedbackStatus(n, 'note'),
+            title: n.exam_title || '제목 없음',
+            status: '정상 제출',
             isDeleteRequested: n.delete_requested
           });
         });
-      }
-
-      if (scores) {
         scores.forEach(s => {
-          const user = profileMap[s.user_id] || {};
+          const user = profileMap.get(s.user_id) || {};
           combined.push({
             type: 'score',
             id: s.id,
             date: s.test_date || (s.created_at ? s.created_at.split('T')[0] : '-'),
             userName: user.name || user.username || '홍길동',
-            className: user.class_name || '-',
-            title: `<span class="badge-score">[분석지]</span> ${s.exam_title || '제목 없음'}`,
+            feedback: getFeedbackStatus(s, 'score'),
+            title: s.exam_title || '제목 없음',
             status: `${s.total_score || 0}점 (${s.grade || '-'}등급)`,
             isDeleteRequested: false
           });
         });
+
+        // 날짜 최신순 정렬
+        combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (combined.length === 0) {
+          container.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
+          return;
+        }
+
+        const feedbackLabels = { done: '작성 완료', pending: '미작성', unknown: '확인 불가' };
+        const fragment = document.createDocumentFragment();
+        combined.forEach(item => {
+          const row = document.createElement('tr');
+          const addCell = text => {
+            const cell = document.createElement('td');
+            if (text != null) cell.textContent = text;
+            row.appendChild(cell);
+            return cell;
+          };
+          addCell(item.date);
+          const name = document.createElement('b');
+          name.textContent = item.userName;
+          addCell().appendChild(name);
+          const feedback = document.createElement('span');
+          feedback.className = `badge-feedback feedback-${item.feedback}`;
+          feedback.textContent = feedbackLabels[item.feedback];
+          addCell().appendChild(feedback);
+          const title = addCell();
+          const badge = document.createElement('span');
+          badge.className = item.type === 'note' ? 'badge-note' : 'badge-score';
+          badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]';
+          title.appendChild(badge);
+          title.appendChild(document.createTextNode(` ${item.title}`));
+          const status = addCell();
+          if (item.isDeleteRequested) {
+            const deletion = document.createElement('span');
+            deletion.className = 'badge-del';
+            deletion.textContent = '🚨 삭제 요청됨';
+            status.appendChild(deletion);
+          } else {
+            status.textContent = item.status;
+          }
+          const controls = addCell();
+          const addButton = (label, className, action) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `btn ${className}`;
+            button.textContent = label;
+            button.addEventListener('click', action);
+            controls.appendChild(button);
+            controls.appendChild(document.createTextNode(' '));
+          };
+          addButton('상세 보기', 'btn-view', () => {
+            const page = item.type === 'note' ? 'view.html' : 'score_view.html';
+            location.href = `${page}?id=${encodeURIComponent(item.id)}&role=admin`;
+          });
+          if (item.isDeleteRequested) {
+            addButton('🚨 삭제 승인', 'btn-delete', () => confirmDeleteNote(item.id));
+            addButton('거절', 'btn-reject', () => rejectDeleteNote(item.id));
+          }
+          fragment.appendChild(row);
+        });
+        container.replaceChildren(fragment);
+      } catch (error) {
+        container.innerHTML = '<tr><td colspan="6">제출 현황을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.</td></tr>';
       }
-
-      // 날짜 최신순 정렬
-      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      if (combined.length === 0) {
-        container.innerHTML = '<tr><td colspan="6">제출된 내역이 없습니다.</td></tr>';
-        return;
-      }
-
-      container.innerHTML = combined.map(item => `
-        <tr>
-          <td>${item.date}</td>
-          <td><b>${item.userName}</b></td>
-          <td>${item.className}</td>
-          <td>${item.title}</td>
-          <td>${item.status}</td>
-          <td>
-            ${item.type === 'note' ? `<button class="btn btn-view" onclick="location.href='view.html?id=${item.id}&role=admin'">상세 보기</button>` : `<button class="btn btn-view" onclick="location.href='score_view.html?id=${item.id}&role=admin'">상세 보기</button>`}
-            ${item.isDeleteRequested ? `
-              <button class="btn btn-delete" onclick="confirmDeleteNote('${item.id}')">🚨 삭제 승인</button>
-              <button class="btn btn-reject" onclick="rejectDeleteNote('${item.id}')">거절</button>
-            ` : ''}
-          </td>
-        </tr>
-      `).join('');
     }
 
     // 🚨 진짜 DB에서 삭제하는 함수
