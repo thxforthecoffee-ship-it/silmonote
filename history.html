@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="same-origin"><title>누적 학습기록 · 실모기록</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#17243b;font:16px/1.6 system-ui,-apple-system,"Malgun Gothic",sans-serif}main{max-width:1040px;margin:auto;padding:28px 20px 60px}a{color:#235ac5}header{display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:28px;margin:20px 0 4px}h2{font-size:20px;margin:0 0 12px}.muted{color:#5c6b80;font-size:14px}.panel{background:white;border:1px solid #dde3ed;border-radius:14px;padding:22px;margin-top:20px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{background:#edf3ff;padding:16px;border-radius:10px}.stat strong{display:block;font-size:27px;color:#244e9c}.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:16px 0}label{display:block;font-size:14px;font-weight:600}input,select,button{font:inherit;padding:10px 12px;border:1px solid #bec9da;border-radius:8px;max-width:100%;background:white;color:#17243b}input{width:260px}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}button.primary{background:#245bc6;color:white;border-color:#245bc6}:focus-visible{outline:3px solid #e4a500;outline-offset:2px}#status{padding:12px 0;white-space:pre-line}#status.error{color:#a22626}.record{padding:18px 0;border-bottom:1px solid #e5eaf1}.record:last-child{border:0}.record h3{margin:5px 0;font-size:17px;overflow-wrap:anywhere}.record p{margin:7px 0}.tag{display:inline-block;background:#eef1f5;color:#48566b;padding:2px 9px;border-radius:20px;font-size:13px}.tag.done{background:#e1f4e9;color:#19633e}.feedback{white-space:pre-wrap;overflow-wrap:anywhere;border-left:3px solid #b5c9ef;padding:8px 14px;margin-top:10px;background:#f7f9fc}summary{cursor:pointer;color:#2d5289}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:12px;border-bottom:1px solid #e6eaf0;overflow-wrap:anywhere}th{background:#f3f6fb}.table-scroll{overflow:auto}#more{display:block;margin:20px auto 0}#more[hidden],[hidden]{display:none!important}#studentControl{margin-top:14px}#student{min-width:230px}.empty{padding:24px;color:#66758a}footer{margin-top:22px;color:#66758a;font-size:13px}@media(max-width:600px){main{padding:14px 14px 40px}.panel{padding:16px}.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:25px}header{align-items:start}.filters>label{width:100%}input,select{width:100%}td,th{padding:9px}.stat strong{font-size:24px}}
+</style></head><body><main>
+<header><a href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
+<h1>누적 학습기록</h1><p class="muted">분석지와 오답노트, 선생님 피드백을 한곳에서 확인하세요.</p>
+<div id="studentControl" hidden><label for="student">조회할 학생 (기존 관리자 전용)</label><select id="student"></select><p id="studentStatus" class="muted"></p></div>
+<div id="status" role="status" aria-live="polite">로그인과 조회 권한을 확인하고 있습니다.</div>
+<div id="content" hidden>
+<section class="panel" aria-labelledby="summaryTitle"><h2 id="summaryTitle">불러온 기록 요약</h2><div class="stats"><div class="stat">전체 기록<strong id="total">0</strong></div><div class="stat">모의고사 분석지<strong id="scores">0</strong></div><div class="stat">심화 오답노트<strong id="notes">0</strong></div><div class="stat">피드백 작성<strong id="feedback">0</strong></div></div><p id="coverage" class="muted"></p></section>
+<section class="panel" aria-labelledby="scoreTitle"><h2 id="scoreTitle">분석지별 점수 기록</h2><p class="muted">제출일 기준 오래된 순서입니다. 시험 종류·난도가 다를 수 있어 평균이나 향상률은 계산하지 않습니다. 점수 미입력은 0점이 아닙니다.</p><div class="table-scroll"><table><thead><tr><th scope="col">제출일</th><th scope="col">시험명</th><th scope="col">점수</th><th scope="col">등급</th></tr></thead><tbody id="scoreRows"></tbody></table></div></section>
+<section class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 분석지</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
+</div><footer>이 페이지는 조회 전용입니다. 피드백 작성·수정은 기존 상세보기에서 진행합니다.</footer>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script>
+'use strict';
+const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
+const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
+// 공개 anon 키만 사용합니다. service_role 키는 절대로 넣지 마세요.
+const $ = id => document.getElementById(id);
+const PAGE_SIZE = 100;
+let client, identity, selectedId, generation = 0, busy = false;
+let records = [], cursors = {note:null,score:null}, more = {note:true,score:true};
+const text = value => typeof value === 'string' ? value : '';
+const quote = value => '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+function dateLabel(value){if(!value)return '날짜 미입력';const d=new Date(value);return Number.isNaN(d.getTime())?'날짜 확인 필요':new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function element(tag, value, className){const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);if(className)e.className=className;return e;}
+function normalize(row,type){const content=row.content&&typeof row.content==='object'?row.content:{};return {...row,id:String(row.record_id),type,feedback:[row.teacher_comment,...(type==='note'?[content.teacher_comment,content.comment]:[])].find(v=>text(v).trim())||''};}
+function compare(a,b){const delta=(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0);if(delta)return delta;if(/^\d+$/.test(a.id)&&/^\d+$/.test(b.id))return BigInt(a.id)===BigInt(b.id)?0:BigInt(a.id)>BigInt(b.id)?-1:1;return b.id.localeCompare(a.id);}
+function controls(){ $('refresh').disabled=busy;$('more').disabled=busy;$('more').hidden=!more.note&&!more.score;$('more').textContent=busy?'불러오는 중…':'이전 기록 더 불러오기';$('records').setAttribute('aria-busy',String(busy));}
+function render(){
+ const scores=records.filter(r=>r.type==='score');$('total').textContent=records.length;$('scores').textContent=scores.length;$('notes').textContent=records.length-scores.length;$('feedback').textContent=records.filter(r=>r.feedback).length;
+ $('coverage').textContent=(more.note||more.score)?'일부 기록을 불러왔습니다. 아래 ‘이전 기록 더 불러오기’를 누르면 요약과 목록에 추가됩니다.':'접근 가능한 활성 기록을 모두 불러왔습니다. 휴지통 기록은 제외합니다.';
+ const tbody=$('scoreRows');tbody.replaceChildren();for(const r of [...scores].sort(compare).reverse()){const tr=element('tr');for(const value of [dateLabel(r.created_at),r.exam_title||'제목 없음',r.real_score===null||r.real_score===undefined||r.real_score===''?'미입력':r.real_score+'점',r.real_grade===null||r.real_grade===undefined||r.real_grade===''?'미입력':r.real_grade+'등급'])tr.appendChild(element('td',value));tbody.appendChild(tr);}if(!scores.length){const td=element('td','불러온 모의고사 분석지가 없습니다.');td.colSpan=4;const tr=element('tr');tr.appendChild(td);tbody.appendChild(tr);}
+ const query=$('search').value.trim().toLocaleLowerCase(), type=$('type').value,state=$('state').value;
+ const filtered=records.filter(r=>(type==='all'||r.type===type)&&(state==='all'||(state==='done')===Boolean(r.feedback))&&((text(r.exam_title)+' '+text(r.question_info)).toLocaleLowerCase().includes(query))).sort(compare);
+ $('filterCount').textContent=`불러온 ${records.length}건 중 ${filtered.length}건 표시 · 최신 제출순`;
+ $('records').replaceChildren();for(const r of filtered){const item=element('article',undefined,'record');item.appendChild(element('span',r.type==='note'?'심화 오답노트':'모의고사 분석지','tag'));const heading=element('h3');const link=element('a',(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));link.href=(r.type==='note'?'view.html':'score_view.html')+'?id='+encodeURIComponent(r.id);heading.appendChild(link);item.appendChild(heading);item.appendChild(element('p','제출일 '+dateLabel(r.created_at)+(r.type==='note'&&r.test_date?' · 시험일 '+r.test_date:''),'muted'));item.appendChild(element('span',r.feedback?'피드백 작성됨':'피드백 미작성',r.feedback?'tag done':'tag'));if(r.feedback){const details=element('details');details.appendChild(element('summary','선생님 피드백 펼치기'));details.appendChild(element('div',r.feedback,'feedback'));item.appendChild(details);} $('records').appendChild(item);}if(!filtered.length)$('records').appendChild(element('p',records.length?'조건에 맞는 기록이 없습니다.':'아직 제출된 기록이 없습니다.','empty'));controls();
+}
+async function fetchPage(type,owner,cursor){
+ const table=type==='note'?'notes':'score_reports';
+ const fields=type==='note'?'*,record_id:id::text':'record_id:id::text,user_id,created_at,exam_title,real_score,real_grade,teacher_comment';
+ let q=client.from(table).select(fields).eq('user_id',owner).is('deleted_at',null);
+ if(cursor){if(cursor.created_at==null)q=q.is('created_at',null).lt('id',cursor.id);else q=q.or(`created_at.lt.${quote(cursor.created_at)},and(created_at.eq.${quote(cursor.created_at)},id.lt.${quote(cursor.id)}),created_at.is.null`);}
+ const result=await q.order('created_at',{ascending:false,nullsFirst:false}).order('id',{ascending:false}).limit(PAGE_SIZE+1);
+ if(result.error||!Array.isArray(result.data))throw new Error('기록을 불러오지 못했습니다. 네트워크와 조회 권한을 확인한 뒤 다시 시도해 주세요.');
+ // 추가 방어선. 최종 권한은 Supabase RLS가 강제해야 합니다.
+ if(result.data.some(row=>row.user_id!==owner))throw new Error('조회 범위가 일치하지 않아 표시를 중단했습니다. 관리자에게 문의해 주세요.');
+ return result.data.map(row=>normalize(row,type));
+}
+async function load(reset=false){
+ if(busy&&!reset)return;const ticket=++generation;busy=true;$('status').className='';$('status').textContent='기록을 불러오는 중입니다.';
+ if(reset){records=[];cursors={note:null,score:null};more={note:true,score:true};$('content').hidden=true;render();}controls();
+ try{
+ const access=await AppAccess.requireAccess(client);if(ticket!==generation)return;
+ if(access.user.id!==identity.user.id||access.isAdmin!==identity.isAdmin)throw new Error('계정 또는 권한이 변경되었습니다. 홈에서 다시 로그인해 주세요.');
+ const owner=identity.isAdmin?selectedId:access.user.id;if(!owner)throw new Error('조회할 학생을 선택해 주세요.');
+ const [notes,scores]=await Promise.all([more.note?fetchPage('note',owner,cursors.note):[],more.score?fetchPage('score',owner,cursors.score):[]]);
+ AppAccess.assertCurrent(access.version);if(ticket!==generation)return;
+ for(const [type,rows] of [['note',notes],['score',scores]]){if(!more[type])continue;more[type]=rows.length>PAGE_SIZE;const page=rows.slice(0,PAGE_SIZE);if(page.length)cursors[type]=page[page.length-1];const existing=new Set(records.map(r=>r.type+':'+r.id));records.push(...page.filter(r=>!existing.has(r.type+':'+r.id)));}
+ $('content').hidden=false;$('status').textContent='기록을 불러왔습니다.';render();
+ }catch(error){if(ticket!==generation)return;records=[];cursors={note:null,score:null};more={note:true,score:true};$('content').hidden=true;render();$('status').className='error';$('status').textContent=(error instanceof Error?error.message:'불러오기에 실패했습니다.')+' 새로고침 버튼으로 다시 시도할 수 있습니다.';}
+ finally{if(ticket===generation){busy=false;controls();}}
+}
+async function students(access){
+ $('studentControl').hidden=false;const select=$('student');select.replaceChildren();const own=element('option','내 기록');own.value=access.user.id;select.appendChild(own);
+ // 기존 is_admin RPC로 승인된 관리자만 요청합니다. 일반 학생은 이 쿼리에 도달하지 않습니다.
+ let offset=0,total=0;while(total<1000){const result=await client.from('profiles').select('id,name').eq('is_approved',true).order('id',{ascending:true}).range(offset,offset+99);AppAccess.assertCurrent(access.version);if(result.error||!Array.isArray(result.data))throw new Error('학생 목록을 불러오지 못했습니다. 현재 내 기록만 표시합니다.');for(const p of result.data){if(p.id===access.user.id)continue;const option=element('option',(p.name||'이름 없음')+' · '+String(p.id).slice(0,8));option.value=p.id;select.appendChild(option);}total+=result.data.length;offset+=result.data.length;if(result.data.length<100)break;}
+ $('studentStatus').textContent=total>=1000?'승인된 계정 최대 1,000개까지만 표시합니다.':'기존 학원 관리자 권한으로 접근 가능한 승인 계정입니다.';
+}
+async function start(){try{if(!window.supabase||!window.AppAccess)throw new Error('필수 파일을 불러오지 못했습니다. 인터넷 연결과 app-access.js 파일을 확인해 주세요.');client=window.supabase.createClient(HISTORY_URL,HISTORY_ANON_KEY);AppAccess.watch(client);identity=await AppAccess.requireAccess(client);selectedId=identity.user.id;if(identity.isAdmin){try{await students(identity);}catch(error){const select=$('student');while(select.options.length>1)select.remove(1);$('studentStatus').textContent=error.message;}}await load(true);}catch(error){$('status').className='error';$('status').textContent=error.message;}}
+$('refresh').addEventListener('click',()=>identity?load(true):location.reload());$('more').addEventListener('click',()=>load());$('student').addEventListener('change',()=>{selectedId=$('student').value;load(true);});for(const id of ['search','type','state'])$(id).addEventListener('input',render);start();
+</script></body></html>
