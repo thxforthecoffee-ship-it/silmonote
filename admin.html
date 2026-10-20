@@ -14,6 +14,7 @@
     th, td { padding: 12px; border: 1px solid #eee; text-align: center; font-size: 14px; }
     th { background: #f8f9fa; font-weight: bold; }
     .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; text-decoration: none; }
+    .btn-history { display:inline-block; background:#245bc6; color:white; padding:12px 16px; }
     .btn-approve { background: #22c55e; color: white; }
     .btn-delete { background: #ef4444; color: white; }
     .btn-reject { background: #6b7280; color: white; }
@@ -49,6 +50,11 @@
 
   <p id="accessStatus" class="card" role="status" aria-live="polite">관리자 권한을 확인하는 중입니다...</p>
   <div id="adminContent" hidden>
+    <section class="card" aria-labelledby="studentHistoryTitle">
+      <h3 id="studentHistoryTitle">📚 학생별 누적 학습기록</h3>
+      <p>학생을 선택해 모의고사 점수, 오답노트와 선생님 피드백을 한곳에서 확인하세요.</p>
+      <a href="history.html" class="btn btn-history">학생별 누적 학습기록과 피드백 보기 ➜</a>
+    </section>
     <section class="card">
       <h3>⏳ 승인 대기 중인 학생</h3>
       <button id="refreshPending" type="button" class="btn btn-view">승인 대기 목록 새로고침</button>
@@ -233,7 +239,7 @@
       if (typeof record.id !== 'string' || !/^(0|-?[1-9]\d*)$/.test(record.id)) throw new Error('기록 ID를 안전하게 읽지 못했습니다. 관리자에게 문의해 주세요.');
       const profile = profileMap.get(record.user_id) || {};
       return {
-        type, id: record.id,
+        type, id: record.id, userId: record.user_id,
         date: record.test_date || String(record.created_at || '').slice(0, 10) || '-',
         createdAt: record.created_at || '', deletedAt: record.deleted_at,
         userName: profile.name || profile.username || record.user_name || '이름 없음',
@@ -301,7 +307,17 @@
           } else selected.delete(itemKey(item));
           updateControls();
         });
-        cell().appendChild(checkbox); cell(item.date); cell(item.userName);
+        cell().appendChild(checkbox); cell(item.date);
+        const studentCell = cell(item.userName);
+        if (item.userId) {
+          const historyLink = document.createElement('a');
+          historyLink.className = 'btn btn-view';
+          historyLink.href = 'history.html?student=' + encodeURIComponent(item.userId);
+          historyLink.textContent = '누적 학습기록';
+          historyLink.setAttribute('aria-label', `${item.userName} 누적 학습기록 보기`);
+          studentCell.appendChild(document.createElement('br'));
+          studentCell.appendChild(historyLink);
+        }
         const feedback = document.createElement('span'); feedback.className = `badge-feedback feedback-${item.feedback}`; feedback.textContent = feedbackLabels[item.feedback]; cell().appendChild(feedback);
         const title = cell(); const badge = document.createElement('span'); badge.className = item.type === 'note' ? 'badge-note' : 'badge-score'; badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]'; title.append(badge, document.createTextNode(` ${item.title}`));
         cell(currentMode === 'trash' ? `휴지통 · ${String(item.deletedAt || '').slice(0, 10)}` : item.isDeleteRequested ? '🚨 삭제 요청됨' : item.status);
@@ -392,3 +408,4 @@
   </script>
 </body>
 </html>
+
