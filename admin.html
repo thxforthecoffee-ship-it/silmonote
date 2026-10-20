@@ -307,17 +307,7 @@
           } else selected.delete(itemKey(item));
           updateControls();
         });
-        cell().appendChild(checkbox); cell(item.date);
-        const studentCell = cell(item.userName);
-        if (item.userId) {
-          const historyLink = document.createElement('a');
-          historyLink.className = 'btn btn-view';
-          historyLink.href = 'history.html?student=' + encodeURIComponent(item.userId);
-          historyLink.textContent = '누적 학습기록';
-          historyLink.setAttribute('aria-label', `${item.userName} 누적 학습기록 보기`);
-          studentCell.appendChild(document.createElement('br'));
-          studentCell.appendChild(historyLink);
-        }
+        cell().appendChild(checkbox); cell(item.date); cell(item.userName);
         const feedback = document.createElement('span'); feedback.className = `badge-feedback feedback-${item.feedback}`; feedback.textContent = feedbackLabels[item.feedback]; cell().appendChild(feedback);
         const title = cell(); const badge = document.createElement('span'); badge.className = item.type === 'note' ? 'badge-note' : 'badge-score'; badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]'; title.append(badge, document.createTextNode(` ${item.title}`));
         cell(currentMode === 'trash' ? `휴지통 · ${String(item.deletedAt || '').slice(0, 10)}` : item.isDeleteRequested ? '🚨 삭제 요청됨' : item.status);
