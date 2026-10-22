@@ -1149,6 +1149,7 @@
       ).innerText =
         data.exam_title ||
         '무제 모의고사';
+      const scoreMeta=document.createElement('p');scoreMeta.textContent=(data.record_kind==='score_only'?'점수만 기록 · 유형별 정오답 분석에는 포함하지 않습니다. ':'')+'시험일: '+(data.exam_date||'미상')+(data.exam_date_precision==='month'?' (응시 월만 확인 · 임의 날짜)':'');document.getElementById('examTitle').after(scoreMeta);
 
 
       document.getElementById(

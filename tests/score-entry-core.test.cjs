@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),D=require('../score-entry-core.js');
+const student={id:'synthetic-student',name:'가상 학생',is_approved:true};
+test('score-only payload preserves zero, unknown date and unknown grade',()=>{const p=D.payload({title:'가상 시험',score:0},student);assert.equal(p.real_score,'0');assert.equal(p.real_grade,null);assert.equal(p.exam_date,null);assert.equal(p.record_kind,'score_only');assert.equal('created_at'in p,false);assert.equal('teacher_comment'in p,false);});
+test('dates validate calendar days without deriving from title or submission time',()=>{assert.equal(D.date('2024-02-29'),'2024-02-29');for(const x of ['2026-02-29','2026-13-01','09/05','2026-1-1'])assert.throws(()=>D.date(x));});
+test('invalid score grade and nonapproved target rejected',()=>{for(const x of ['',-1,101,'3.5','NaN'])assert.throws(()=>D.payload({title:'가상',score:x},student));assert.throws(()=>D.payload({title:'가상',score:80,grade:0},student));assert.throws(()=>D.payload({title:'가상',score:80},{...student,is_approved:false}));});

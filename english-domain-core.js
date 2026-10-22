@@ -22,6 +22,7 @@ function parseQuestions(value,note=false){if(value==null||String(value).trim()==
 function examKey(r){const title=typeof r.exam_title==='string'?r.exam_title.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' '):'';return title?String(r.user_id||'')+'|'+title:null;}
 function noteResult(r){return r.p1_result==='오답 (X)'?'wrong':r.p1_result==='정답 (O)'?'correct':null;}
 function deriveRates(scores,notes,domain,allRecords=[...scores,...notes]){
+ scores=scores.filter(r=>r.record_kind!=='score_only');allRecords=allRecords.filter(r=>r.record_kind!=='score_only');
  const scoreCounts=new Map();for(const r of allRecords.filter(r=>r.type==='score')){const key=examKey(r);if(key)scoreCounts.set(key,(scoreCounts.get(key)||0)+1);}
  // Callers without type fields still get ambiguity protection for supplied analyses.
  if(!scoreCounts.size)for(const r of scores){const key=examKey(r);if(key)scoreCounts.set(key,(scoreCounts.get(key)||0)+1);}

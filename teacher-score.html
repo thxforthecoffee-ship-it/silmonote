@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>학생 성적 대신 입력</title><style>body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#243848;margin:0;padding:24px}main{max-width:640px;margin:auto;background:white;border-radius:16px;padding:24px}label{display:block;margin:18px 0}input,select,button{font:inherit;box-sizing:border-box;width:100%;padding:12px;border:1px solid #b7c4cd;border-radius:8px}button{background:#245bc6;color:white;cursor:pointer}button:disabled{opacity:.5}a{color:#245bc6}#status{white-space:pre-wrap}small{color:#536779}</style></head>
+<body><main><a href="admin.html">← 관리자 모드</a><h1>학생 성적 대신 입력</h1><p>점수 기록만 추가합니다. 정오답 분석이나 학생의 기존 기록은 바꾸지 않습니다.</p><form id="entry" inert>
+<label>학생<select id="student" required><option value="">학생 선택</option></select></label>
+<label>모의고사명<input id="title" maxlength="200" required></label>
+<label>시험일 (선택)<input id="examDate" type="date"><small>모르면 비워 두세요. 입력한 오늘 날짜를 시험일로 대신 저장하지 않습니다.</small></label>
+<label>원점수<input id="score" type="number" min="0" max="100" step="1" required></label>
+<label>등급 (선택)<input id="grade" type="number" min="1" max="9" step="1"></label>
+<button id="save" type="submit">학생 기록에 저장</button></form><p id="status" role="status" aria-live="polite">접근 권한 확인 중…</p></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="score-entry-core.js"></script>
+<script>
+const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
+    const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
+    const supabaseClient = window.supabase.createClient(url, key);
+AppAccess.watch(supabaseClient);
+const $=id=>document.getElementById(id);let students=[],saving=false;
+async function init(){try{const access=await AppAccess.requireAccess(supabaseClient,true);const r=await supabaseClient.from('profiles').select('id,name,email,is_approved').eq('is_approved',true).order('name');AppAccess.assertCurrent(access.version);if(r.error)throw Error('학생 목록을 불러오지 못했습니다.');students=r.data||[];for(const p of students){const o=document.createElement('option');o.value=p.id;o.textContent=(p.name||'이름 미입력')+(students.filter(x=>x.name===p.name).length>1?' · '+p.email:'');$('student').appendChild(o);}$('entry').inert=false;$('status').textContent='';}catch(e){$('status').textContent=e.message;}}
+$('entry').addEventListener('submit',async event=>{event.preventDefault();if(saving)return;saving=true;$('save').disabled=true;try{
+ const access=await AppAccess.requireAccess(supabaseClient,true);
+ const p=ScoreEntry.payload({title:$('title').value,score:$('score').value,grade:$('grade').value,date:$('examDate').value},students.find(s=>s.id===$('student').value));
+ let q=supabaseClient.from('score_reports').select('id,real_score,exam_date').eq('user_id',p.user_id).eq('exam_title',p.exam_title).is('deleted_at',null);q=p.exam_date?q.eq('exam_date',p.exam_date):q.is('exam_date',null);
+ const duplicate=await q.limit(10);AppAccess.assertCurrent(access.version);if(duplicate.error)throw Error('중복 여부를 확인하지 못해 저장하지 않았습니다.');
+ if(duplicate.data?.length&&!confirm('같은 학생·시험명·시험일의 기록이 있습니다. 기존 기록을 확인했으며 별도 응시 기록으로 추가할까요?'))return;
+ const result=await supabaseClient.from('score_reports').insert([p]).select('id::text').single();AppAccess.assertCurrent(access.version);if(result.error||!result.data)throw Error('저장 결과를 확인하지 못했습니다. 다시 누르기 전에 누적 기록에서 중복 여부를 확인해 주세요.');
+ $('title').value='';$('score').value='';$('grade').value='';$('examDate').value='';$('status').textContent='저장했습니다. ';const link=document.createElement('a');link.href='history.html?student='+encodeURIComponent(p.user_id);link.textContent='학생 누적 기록 보기';$('status').appendChild(link);
+}catch(e){$('status').textContent=e.message;}finally{saving=false;$('save').disabled=false;}});
+init();
+</script></body></html>
