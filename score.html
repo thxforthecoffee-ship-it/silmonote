@@ -645,6 +645,11 @@
   </div>
 
 
+  <section aria-labelledby="assessmentTitle" style="margin:24px 0">
+    <div class="section-title" id="assessmentTitle">유형별 정답·오답 수 (선택 입력)</div>
+    <p>아래 번호 체계의 영어 시험에만 입력하세요. 직접 채점해 확인한 정답·오답 수를 모두 입력하면 누적 리포트에 반영됩니다. 미풀이·미채점 문항은 포함하지 않으며, 두 칸을 비우면 자료부족으로 처리합니다. 오답이 없으면 오답 수에 0을 명시하세요. 기존 오답 번호·이유로 자동 추정하지 않습니다.</p>
+    <div id="assessmentInputs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px"></div>
+  </section>
   <!-- 2. 유형별 손실 진단 -->
 
   <div class="section-title">
@@ -945,6 +950,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app-access.js"></script>
+<script src="english-domain-core.js"></script>
 
 
 <script>
@@ -1240,11 +1246,31 @@
      기존 데이터 불러오기
      ========================================== */
 
+  const assessmentDirty = new Set();
+  function renderAssessmentInputs(data = {}) {
+    assessmentDirty.clear();
+    const host = document.getElementById('assessmentInputs'); host.replaceChildren();
+    for (const domain of EnglishDomains.domains) {
+      const group = document.createElement('fieldset');
+      const legend = document.createElement('legend'); legend.textContent = domain.label + ' (' + domain.range + ')'; group.appendChild(legend);
+      const raw = EnglishDomains.lossForEdit(data,domain.key)?.assessment;
+      const saved = EnglishDomains.assessed(raw, domain.size);
+      if (raw && !saved) { const warning = document.createElement('p'); warning.textContent = '기존 정오답 데이터 형식을 확인할 수 없습니다. 입력을 변경하지 않으면 원본을 보존합니다.'; group.appendChild(warning); }
+      for (const [key, labelText] of [['correct', '정답 수'], ['incorrect', '오답 수']]) {
+        const label = document.createElement('label'); label.textContent = labelText;
+        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.max = String(domain.size); input.step = '1'; input.placeholder = '미입력';
+        input.id = 'assessment_' + domain.key + '_' + key; input.value = saved ? saved[key] : ''; input.addEventListener('input', () => assessmentDirty.add(domain.key)); label.appendChild(input); group.appendChild(label);
+      }
+      host.appendChild(group);
+    }
+  }
+  let originalLossData = {};
   let editorReady = false;
   let saving = false;
   async function loadScoreData() {
     try {
     await AppAccess.requireAccess(supabaseClient);
+    renderAssessmentInputs();
 
     if (!scoreId) {
 
@@ -1258,6 +1284,8 @@
 
 
     const { data } = await AppAccess.loadActive(supabaseClient, 'score_reports', scoreId, true);
+    originalLossData = data;
+    renderAssessmentInputs(data);
 
     /* 기본 정보 */
 
@@ -1274,10 +1302,10 @@
       data.target_grade || '';
 
     document.getElementById('targetScore').value =
-      data.target_score || '';
+      data.target_score ?? '';
 
     document.getElementById('realScore').value =
-      data.real_score || '';
+      data.real_score ?? '';
 
     document.getElementById('realGrade').value =
       data.real_grade || '';
@@ -1368,9 +1396,15 @@
     ];
 
 
+    const editableLossData = { ...data };
+    if (!data.loss_grammar) {
+      editableLossData.loss_grammar = null;
+      editableLossData.loss_long = data.loss_long2 || null;
+      document.getElementById('editorStatus').textContent = '이전 양식의 영역 불명확 원문은 별도로 보존합니다. 새 유형에 임의로 배정하지 않습니다.';
+    }
     lossFields.forEach(f => {
 
-      if (data[`loss_${f}`]) {
+      if (editableLossData[`loss_${f}`]) {
 
         const numsEl =
           document.getElementById(
@@ -1386,7 +1420,7 @@
         if (numsEl) {
 
           numsEl.value =
-            data[`loss_${f}`].nums || '';
+            editableLossData[`loss_${f}`].nums || '';
 
         }
 
@@ -1394,7 +1428,7 @@
         if (reasonEl) {
 
           reasonEl.value =
-            data[`loss_${f}`].reason || '';
+            editableLossData[`loss_${f}`].reason || '';
 
         }
 
@@ -1411,7 +1445,7 @@
 
     editorReady = true;
     document.getElementById('reportForm').inert = false;
-    document.getElementById('editorStatus').textContent = '';
+    document.getElementById('editorStatus').textContent = !data.loss_grammar && data.loss_long ? '이전 양식의 유형 미분류 원문은 별도로 보존합니다. 새 유형에 임의로 배정하지 않습니다.' : '';
     } catch (error) { document.getElementById('editorStatus').textContent = error.message; }
 
   }
@@ -1664,6 +1698,15 @@
          신규 / 수정 저장
          ========================================== */
 
+      for (const domain of EnglishDomains.domains) {
+        reportData['loss_' + domain.key] = EnglishDomains.mergeLoss(originalLossData,domain.key,reportData['loss_' + domain.key]);
+        if (!assessmentDirty.has(domain.key)) continue;
+        try {
+          reportData['loss_' + domain.key].assessment = EnglishDomains.parseInput(
+            document.getElementById('assessment_' + domain.key + '_correct').value,
+            document.getElementById('assessment_' + domain.key + '_incorrect').value, domain.size);
+        } catch (error) { throw new Error(domain.label + ': ' + error.message); }
+      }
       let savedId = scoreId;
 
 
@@ -1797,5 +1840,6 @@
 
 </body>
 </html>
+
 
 

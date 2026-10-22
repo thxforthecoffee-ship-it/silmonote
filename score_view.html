@@ -471,6 +471,11 @@
       </div>
 
 
+      <section aria-labelledby="assessmentTitle">
+        <div class="section-title" id="assessmentTitle">유형별 정답·오답 수</div>
+        <p>직접 채점해 입력한 확인 문항만 표시합니다. 미확인 문항은 제외합니다. 본인 분석지 수정에서 입력·수정할 수 있습니다.</p>
+        <div id="assessmentSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+      </section>
       <!-- 2. 유형별 손실 진단 -->
       <div class="section-title">
         2. 유형별 손실 진단 결과
@@ -730,6 +735,7 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app-access.js"></script>
+<script src="english-domain-core.js"></script>
 
 
   <script>
@@ -1166,13 +1172,13 @@
       document.getElementById(
         'targetScoreInfo'
       ).innerText =
-        `${data.target_grade || '-'}등급 / ${data.target_score || '-'}점`;
+        `${data.target_grade || '-'}등급 / ${data.target_score ?? '-'}점`;
 
 
       document.getElementById(
         'realScoreInfo'
       ).innerText =
-        `${data.real_score || '-'}점 / ${data.real_grade || '-'}등급`;
+        `${data.real_score ?? '-'}점 / ${data.real_grade || '-'}등급`;
 
 
       document.getElementById(
@@ -1297,6 +1303,12 @@
          유형별 손실 진단
          ======================================================= */
 
+      const assessmentHost = document.getElementById('assessmentSummary'); assessmentHost.replaceChildren();
+      for (const domain of EnglishDomains.domains) {
+        const counts = EnglishDomains.assessed(EnglishDomains.lossForEdit(data,domain.key)?.assessment, domain.size);
+        const card = document.createElement('p'); card.textContent = domain.label + ': ' + (counts ? `정답 ${counts.correct} / 오답 ${counts.incorrect} / 확인 ${counts.total}문항` : '자료부족 (미입력 또는 유효하지 않은 값)'); assessmentHost.appendChild(card);
+      }
+
       renderLossField(
         'listening',
         data.loss_listening
@@ -1342,69 +1354,14 @@
         --------------------------------------------------------
       */
 
-      let grammarData =
-        data.loss_grammar || null;
-
-      let longData =
-        data.loss_long || null;
-
-
-      /*
-        loss_grammar가 아직 없고
-        loss_long2가 있다면
-
-        loss_long = 29-30
-        loss_long2 = 41-42
-      */
-
-      if (
-        !grammarData &&
-        data.loss_long2
-      ) {
-
-        grammarData =
-          data.loss_long;
-
-        longData =
-          data.loss_long2;
-
+      renderLossField('grammar', EnglishDomains.lossForEdit(data,'grammar'));
+      renderLossField('long', EnglishDomains.lossForEdit(data,'long'));
+      const legacyLoss = data.loss_grammar ? data.loss_grammar.legacy_unclassified : data.loss_long;
+      if (legacyLoss && (legacyLoss.nums || legacyLoss.reason)) {
+        const legacyNote = document.createElement('p');
+        legacyNote.textContent = '이전 양식 · 유형 미분류 원문 (정답률 제외): 문항 ' + (legacyLoss.nums || '미기록') + ' / 이유 ' + (legacyLoss.reason || '미기록');
+        assessmentHost.appendChild(legacyNote);
       }
-
-
-      /*
-        완전히 예전 데이터만 있는 경우
-
-        loss_long 하나만 있으면
-        일단 29-30 영역에 표시
-
-        → 이후 score.html을 새 구조로
-          저장하면 정상적으로 분리됨
-      */
-
-      if (
-        !grammarData &&
-        data.loss_long
-      ) {
-
-        grammarData =
-          data.loss_long;
-
-        longData =
-          null;
-
-      }
-
-
-      renderLossField(
-        'grammar',
-        grammarData
-      );
-
-      renderLossField(
-        'long',
-        longData
-      );
-
 
       /* =======================================================
          시간 배분
@@ -1475,3 +1432,4 @@
 
 </body>
 </html>
+
