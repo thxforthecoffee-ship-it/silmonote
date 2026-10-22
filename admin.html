@@ -67,7 +67,7 @@
       </table></div>
     </section>
     <section class="card">
-      <h3>📊 전체 학생 제출 현황 (모의고사 분석지 &amp; 오답노트)</h3>
+      <h3>📊 전체 학생 제출 현황 (성적·분석지·오답노트)</h3>
       <div class="toolbar" aria-label="제출 현황과 휴지통">
         <button id="activeTab" type="button" class="btn btn-view" aria-pressed="true">제출 현황</button>
         <button id="trashTab" type="button" class="btn btn-view" aria-pressed="false">휴지통</button>
@@ -80,10 +80,11 @@
         <button id="moveSelected" type="button" class="btn btn-delete" disabled>선택한 기록 휴지통으로 이동</button>
         <button id="restoreSelected" type="button" class="btn btn-approve" hidden disabled>선택한 기록 복원</button>
       </div>
+      <p class="muted">등록순 · * 임의 날짜</p>
       <p id="submissionStatus" role="status" aria-live="polite"></p>
       <ul id="operationResults" aria-live="polite" aria-label="기록별 처리 결과"></ul>
       <div class="table-scroll"><table>
-        <thead><tr><th scope="col">선택</th><th scope="col">제출일자</th><th scope="col">학생 이름</th><th scope="col">피드백 여부</th><th scope="col">구분 및 시험명</th><th scope="col">점수 / 상태</th><th scope="col">관리</th></tr></thead>
+        <thead><tr><th scope="col">선택</th><th scope="col">시험일 / 노트 기록일</th><th scope="col">학생 이름</th><th scope="col">피드백 여부</th><th scope="col">구분 및 시험명</th><th scope="col">점수 / 상태</th><th scope="col">관리</th></tr></thead>
         <tbody id="allSubmissionsList"></tbody>
       </table></div>
       <button id="moreSubmissions" type="button" class="btn btn-view" hidden>이전 기록 더 보기</button>
@@ -237,12 +238,20 @@
       } catch (error) { byId('pendingStatus').textContent = error.message; }
       finally { mutationBusy = false; updateControls(); }
     }
+    function scoreExamDate(record) {
+      const date=record.exam_date;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return '날짜 미상';
+      const parsed=new Date(date+'T00:00:00Z');
+      if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)return '날짜 미상';
+      return date+(record.exam_date_precision==='month'?'*':'');
+    }
     function toItem(record, type, profileMap) {
       if (typeof record.id !== 'string' || !/^(0|-?[1-9]\d*)$/.test(record.id)) throw new Error('기록 ID를 안전하게 읽지 못했습니다. 관리자에게 문의해 주세요.');
       const profile = profileMap.get(record.user_id) || {};
       return {
         type, id: record.id, userId: record.user_id,
-        date: record.test_date || String(record.created_at || '').slice(0, 10) || '-',
+        date: type==='score'?scoreExamDate(record):(record.test_date || String(record.created_at || '').slice(0, 10) || '-'),
+        typeLabel: type==='note'?'오답노트':record.record_kind==='score_only'?'성적':'분석지',
         createdAt: record.created_at || '', deletedAt: record.deleted_at,
         userName: profile.name || profile.username || record.user_name || '이름 없음',
         feedback: getFeedbackStatus(record, type), title: record.exam_title || '제목 없음',
@@ -253,7 +262,7 @@
     async function fetchSubmissions(table, mode, offset) {
       const fields = table === 'notes'
         ? 'id::text,user_id,user_name,test_date,created_at,exam_title,teacher_comment,delete_requested,deleted_at'
-        : 'id::text,user_id,user_name,created_at,exam_title,teacher_comment,real_score,real_grade,deleted_at';
+        : 'id::text,user_id,user_name,created_at,exam_date,exam_date_precision,record_kind,exam_title,teacher_comment,real_score,real_grade,deleted_at';
       let query = supabaseClient.from(table).select(fields);
       query = mode === 'trash' ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
       const { data, error } = await query.order('created_at', { ascending: false, nullsFirst: false })
@@ -301,7 +310,7 @@
         const row = document.createElement('tr');
         const cell = text => { const node = document.createElement('td'); if (text != null) node.textContent = text; row.appendChild(node); return node; };
         const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(itemKey(item));
-        checkbox.setAttribute('aria-label', `${item.userName} · ${item.type === 'note' ? '오답노트' : '분석지'} · ${item.title} 선택`);
+        checkbox.setAttribute('aria-label', `${item.userName} · ${item.typeLabel} · ${item.title} 선택`);
         checkbox.addEventListener('change', () => {
           if (checkbox.checked) {
             if (selected.size >= MAX_SELECTION) { checkbox.checked = false; byId('submissionStatus').textContent = '한 번에 최대 100건까지 선택할 수 있습니다.'; return; }
@@ -311,7 +320,7 @@
         });
         cell().appendChild(checkbox); cell(item.date); cell(item.userName);
         const feedback = document.createElement('span'); feedback.className = `badge-feedback feedback-${item.feedback}`; feedback.textContent = feedbackLabels[item.feedback]; cell().appendChild(feedback);
-        const title = cell(); const badge = document.createElement('span'); badge.className = item.type === 'note' ? 'badge-note' : 'badge-score'; badge.textContent = item.type === 'note' ? '[오답노트]' : '[분석지]'; title.append(badge, document.createTextNode(` ${item.title}`));
+        const title = cell(); const badge = document.createElement('span'); badge.className = item.type === 'note' ? 'badge-note' : 'badge-score'; badge.textContent = '['+item.typeLabel+']'; title.append(badge, document.createTextNode(` ${item.title}`));
         cell(currentMode === 'trash' ? `휴지통 · ${String(item.deletedAt || '').slice(0, 10)}` : item.isDeleteRequested ? '🚨 삭제 요청됨' : item.status);
         const controls = cell();
         if (currentMode === 'active') {

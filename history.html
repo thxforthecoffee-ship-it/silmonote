@@ -8,6 +8,25 @@
 @media print{@page{size:A4;margin:14mm}body{background:#fff;font-size:11px}main{max-width:none;padding:0}header,#studentControl,#status,.report-toolbar,#printReport,#recordSection,footer,#loadedSummary{display:none!important}.panel{border:1px solid #ccd8d8;border-radius:0;margin-top:12px;padding:16px;break-inside:avoid}.report-hero{background:white;color:#173e46;border:2px solid #173e46}.report-hero .muted,.report-metric,.report-metric strong,.eyebrow{color:#173e46}.report-grid{grid-template-columns:1fr 1fr}.report-table{min-width:0;font-size:10px}td,th{padding:7px}.chart-frame{overflow:visible}.chart-frame svg{min-width:0!important;width:100%}.table-scroll{overflow:visible}.report-details{display:block}.report-card{break-inside:avoid}a{color:inherit;text-decoration:none}h1{font-size:20px}.no-print{display:none!important}}
 
 .admin-review-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.admin-rate{background:#f0f6f5;border-radius:10px;padding:14px}.admin-rate h3{font-size:14px;margin:0}.admin-rate strong{display:block;font-size:25px;color:#164f56}.admin-rate p{margin:4px 0;font-size:12px}.admin-priorities{padding-left:24px}.admin-priorities li{padding:10px 0}.admin-priorities p{margin:4px 0}.admin-fold{margin-top:16px;border:1px solid #dce5e8;border-radius:12px;background:white;padding:16px}.admin-fold>summary{font-weight:700}.admin-fold>.panel{margin-top:14px;border:0;padding:6px}.admin-review-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}@media(max-width:650px){.admin-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media print{
+ body.teacher-report-print main>h1,body.teacher-report-print main>h1+p,body.teacher-report-print .report-metrics,body.teacher-report-print .admin-review-actions,body.teacher-report-print #adminReview .report-link,body.teacher-report-print .admin-fold>summary,body.teacher-report-print .domain-note-evidence,body.teacher-report-print .domain-teacher-feedback,body.teacher-report-print .domain-edit-controls,body.teacher-report-print .domain-legacy{display:none!important}
+ body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger),body.teacher-report-print #adminPriorities li>span{display:none!important}
+ body.teacher-report-print #adminReview,body.teacher-report-print .admin-fold,body.teacher-report-print .admin-fold>.panel{break-inside:auto;page-break-inside:auto}
+ body.teacher-report-print .admin-fold{border:0;padding:0;margin:12px 0}
+ body.teacher-report-print .admin-fold>.panel{border:1px solid #ccd8d8;padding:14px}
+ body.teacher-report-print .report-grid{display:block}
+ body.teacher-report-print .report-card{margin-bottom:10px;break-inside:auto;page-break-inside:auto}
+ body.teacher-report-print .report-card .record,body.teacher-report-print .report-card .feedback{break-inside:avoid;page-break-inside:avoid}
+ body.teacher-report-print .admin-rate,body.teacher-report-print .admin-priorities li,body.teacher-report-print .admin-review-grid{break-inside:avoid;page-break-inside:avoid}
+ body.teacher-report-print h2,body.teacher-report-print h3{break-after:avoid;page-break-after:avoid}
+ body.teacher-report-print .table-scroll,body.teacher-report-print .chart-frame{overflow:visible}
+ body.teacher-report-print table{width:100%;min-width:0;table-layout:fixed}
+ body.teacher-report-print thead{display:table-header-group}
+ body.teacher-report-print tr{break-inside:avoid;page-break-inside:avoid}
+ body.teacher-report-print td,body.teacher-report-print th{overflow-wrap:anywhere}
+ body.teacher-report-print #scoreChart svg{min-width:0!important;width:100%;height:auto}
+}
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
 <nav class="no-print" aria-label="과목 선택"><a href="history.html" aria-current="page">영어 리포트</a> · <a href="korean.html">국어 기록 · 리포트 →</a></nav>
@@ -30,7 +49,7 @@
 
 <section id="recordSection" class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 성적 기록</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
 </div><footer>이 페이지는 조회 전용입니다. 피드백 작성·수정은 기존 상세보기에서 진행합니다.</footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js"></script><script src="admin-review-core.js"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js"></script><script src="admin-review-core.js"></script><script src="report-print.js"></script><script>
 'use strict';
 const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
 const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -62,7 +81,7 @@ function recordLink(r,label){const a=element('a',label||r.exam_title||'제목 �
 function reportSource(r){const p=element('p',dateLabel(r.created_at)+' · ','muted');p.appendChild(recordLink(r));return p;}
 function setupAdminReview(){
  if(!identity?.isAdmin)return;
- $('adminReview').hidden=false;$('reportTitle').textContent='강사 검토 리포트';
+ $('adminReview').hidden=false;$('reportTitle').textContent='강사 검토 리포트';$('printReport').textContent='리포트 인쇄 / PDF 저장';$('printReport').title='브라우저 인쇄 창에서 PDF로 저장을 선택할 수 있습니다.';
  for(const [heading,id,label] of [['trendTitle','reviewTrend','점수 흐름 · 월별 기록'],['scoreTitle','reviewLedger','성적 기록표'],['domainTitle','reviewDomains','유형별 상세 근거 · 모아 제안'],['planTitle','reviewFeedback','강사 피드백 · 학생 목표'],['summaryTitle','reviewLoaded','불러온 기록 수'],['recordTitle','reviewRecords','전체 기록 · 피드백 검색']]){
   const section=$(heading).closest('section');if($(id))continue;const details=element('details',undefined,'admin-fold');details.id=id;details.appendChild(element('summary',label));section.parentNode.insertBefore(details,section);details.appendChild(section);
  }
@@ -108,19 +127,19 @@ function renderDomains(scores,subset=scores){
   const card=element('div',undefined,'report-card');card.id='domain-'+key;card.appendChild(element('h3',label));card.appendChild(element('p','문항 범위: '+range,'muted'));
   card.appendChild(element('p',stats.total?(stats.estimated?'기록 기반 추정 ':'확인 문항 기준 ')+'정답률 '+stats.correctRate.toFixed(1)+'% · 오답률 '+stats.errorRate.toFixed(1)+'%':'전체 시험 비율 · 연결 가능한 분석지 자료부족','domain-rate'));
   const noteEvidence=subset.filter(r=>r.type==='note'&&EnglishDomains.parseQuestions(r.question_info,true).numbers.some(q=>EnglishDomains.questionMap[key].includes(q)));
-  if(noteEvidence.length){const evidence=element('details',undefined,'report-details');evidence.appendChild(element('summary',(typeof identity!=='undefined'&&identity?.isAdmin?'관련 노트 원문 보기 ':'노트 정오답 근거 보기 ')+noteEvidence.length+'건'));for(const r of noteEvidence){evidence.appendChild(reportSource(r));evidence.appendChild(element('p',(r.question_info||'문항 미확인')+' · '+(r.p1_result||'정오답 미확인')));}card.appendChild(evidence);}
+  if(noteEvidence.length){const evidence=element('details',undefined,'report-details domain-note-evidence');evidence.appendChild(element('summary',(typeof identity!=='undefined'&&identity?.isAdmin?'관련 노트 원문 보기 ':'노트 정오답 근거 보기 ')+noteEvidence.length+'건'));for(const r of noteEvidence){evidence.appendChild(reportSource(r));evidence.appendChild(element('p',(r.question_info||'문항 미확인')+' · '+(r.p1_result||'정오답 미확인')));}card.appendChild(evidence);}
   const plan=element('div',undefined,'feedback');plan.appendChild(element('strong','모아 제안'));plan.appendChild(element('p',stats.estimated?'기록 기반 추정 결과를 참고한 연습안입니다. 실제 오답 누락 여부를 먼저 점검한 뒤, 기록된 오답부터 복습하세요. '+domain.plan:EnglishDomains.suggestion(domain,stats,entries.length>0)));card.appendChild(plan);
   const feedback=EnglishDomains.feedbackCandidates(subset,domain);
-  const teacher=element('details',undefined,'report-details');teacher.appendChild(element('summary','강사 피드백 참고 '+feedback.length+'건 · 유형명 언급 기준'));
+  const teacher=element('details',undefined,'report-details domain-teacher-feedback');teacher.appendChild(element('summary','강사 피드백 참고 '+feedback.length+'건 · 유형명 언급 기준'));
   teacher.appendChild(element('p','아래는 이 유형의 표현을 포함한 저장 원문입니다. 자동 분류 후보이므로 다른 유형에 관한 문장도 포함될 수 있습니다. 관련 지시가 있으면 모아의 일반 연습안보다 우선 적용하세요.','muted'));
   if(!feedback.length)teacher.appendChild(element('p','이 유형을 명시한 강사 피드백이 없습니다. 유형 미분류 피드백은 아래 ‘기록별 선생님 피드백’에서 확인하세요.','muted'));
   for(const r of feedback.slice().reverse()){teacher.appendChild(reportSource(r));teacher.appendChild(element('div',r.feedback,'feedback'));}card.appendChild(teacher);
-  if(entries.length){const details=element('details',undefined,'report-details');details.appendChild(element('summary','보조 자료 · 저장된 문항·이유 '+entries.length+'건'));for(const {r,d}of entries.slice().reverse()){const entry=element('div',undefined,'record');entry.appendChild(reportSource(r));entry.appendChild(element('p','문항: '+(present(d.nums)?d.nums:'미기록')));entry.appendChild(element('p','이유: '+(present(d.reason)?d.reason:'미기록')));details.appendChild(entry);}card.appendChild(details);}
-  const edit=element('p',undefined,'muted');edit.appendChild(element('span','정오답 수는 본인 분석지 수정 화면에서 입력할 수 있습니다. '));if(scores.length)edit.appendChild(recordLink(scores[scores.length-1],'최근 분석지 상세보기'));card.appendChild(edit);host.appendChild(card);
+  if(entries.length){const details=element('details',undefined,'report-details domain-loss-evidence');details.appendChild(element('summary','보조 자료 · 저장된 문항·이유 '+entries.length+'건'));for(const {r,d}of entries.slice().reverse()){const entry=element('div',undefined,'record');entry.appendChild(reportSource(r));entry.appendChild(element('p','문항: '+(present(d.nums)?d.nums:'미기록')));entry.appendChild(element('p','이유: '+(present(d.reason)?d.reason:'미기록')));details.appendChild(entry);}card.appendChild(details);}
+  const edit=element('p',undefined,'muted domain-edit-controls');edit.appendChild(element('span','정오답 수는 본인 분석지 수정 화면에서 입력할 수 있습니다. '));if(scores.length)edit.appendChild(recordLink(scores[scores.length-1],'최근 분석지 상세보기'));card.appendChild(edit);host.appendChild(card);
  }
  const legacyData=r=>r.loss_grammar?r.loss_grammar.legacy_unclassified:r.loss_long;
  const legacy=scores.filter(r=>{const d=legacyData(r);return d&&(present(d.nums)||present(d.reason));});
- if(legacy.length){const box=element('details',undefined,'report-card');box.appendChild(element('summary','이전 양식 · 유형 확인이 필요한 원문 '+legacy.length+'건'));box.appendChild(element('p','기존 영역명은 확정하지 않았습니다. 해석 가능한 오답 번호만 표준 영어 문항 번호표에 따라 추정에 반영하며 원문은 그대로 보존합니다.','muted'));for(const r of legacy){box.appendChild(reportSource(r));box.appendChild(element('p','문항: '+(legacyData(r).nums||'미기록')+' / 이유: '+(legacyData(r).reason||'미기록')));}host.appendChild(box);}
+ if(legacy.length){const box=element('details',undefined,'report-card domain-legacy');box.appendChild(element('summary','이전 양식 · 유형 확인이 필요한 원문 '+legacy.length+'건'));box.appendChild(element('p','기존 영역명은 확정하지 않았습니다. 해석 가능한 오답 번호만 표준 영어 문항 번호표에 따라 추정에 반영하며 원문은 그대로 보존합니다.','muted'));for(const r of legacy){box.appendChild(reportSource(r));box.appendChild(element('p','문항: '+(legacyData(r).nums||'미기록')+' / 이유: '+(legacyData(r).reason||'미기록')));}host.appendChild(box);}
 }
 
 function renderPlans(subset){
@@ -171,7 +190,7 @@ async function students(access){
  $('studentStatus').textContent=total>=1000?'승인된 계정 최대 1,000개까지만 표시합니다.':'기존 학원 관리자 권한으로 접근 가능한 승인 계정입니다.';
 }
 async function start(){try{if(!window.supabase||!window.AppAccess)throw new Error('필수 파일을 불러오지 못했습니다. 인터넷 연결과 app-access.js 파일을 확인해 주세요.');client=window.supabase.createClient(HISTORY_URL,HISTORY_ANON_KEY);AppAccess.watch(client);identity=await AppAccess.requireAccess(client);setupAdminReview();selectedId=identity.user.id;if(identity.isAdmin){$('homeLink').href='admin.html';$('homeLink').textContent='← 관리자 모드';try{await students(identity);const requested=new URLSearchParams(location.search).get('student');if(requested){if([...$('student').options].some(option=>option.value===requested)){selectedId=requested;$('student').value=requested;}else{$('studentStatus').textContent='해당 학생이 조회 가능한 승인 계정 목록에 없습니다. 다른 학생을 선택해 주세요.';}}}catch(error){const select=$('student');while(select.options.length>1)select.remove(1);$('studentStatus').textContent=error.message;}}await load(true);}catch(error){$('status').className='error';$('status').textContent=error.message;}}
-$('refresh').addEventListener('click',()=>identity?load(true):location.reload());$('more').addEventListener('click',()=>load());$('reviewMore').addEventListener('click',()=>load());$('student').addEventListener('change',()=>{selectedId=$('student').value;load(true);});let printDetails=[];window.addEventListener('beforeprint',()=>{printDetails=[...document.querySelectorAll('#domainCards details')].map(el=>({el,open:el.open}));printDetails.forEach(({el})=>{el.open=true;});});window.addEventListener('afterprint',()=>{printDetails.forEach(({el,open})=>{el.open=open;});printDetails=[];});$('printReport').addEventListener('click',()=>window.print());$('resetPeriod').addEventListener('click',()=>{$('reportStart').value='';$('reportEnd').value='';render();});$('reportDateBasis').addEventListener('input',()=>{reportDateBasisChosen=true;render();});for(const id of ['reportStart','reportEnd'])$(id).addEventListener('input',render);for(const id of ['search','type','state'])$(id).addEventListener('input',render);start();
+$('refresh').addEventListener('click',()=>identity?load(true):location.reload());$('more').addEventListener('click',()=>load());$('reviewMore').addEventListener('click',()=>load());$('student').addEventListener('change',()=>{selectedId=$('student').value;load(true);});const reportPrint=ReportPrint.create({document,window,isAdmin:()=>Boolean(identity?.isAdmin)});$('printReport').addEventListener('click',()=>{try{reportPrint.print();}catch(error){$('status').textContent='인쇄 창을 열지 못했습니다. 브라우저의 인쇄 메뉴를 사용해 주세요.';}});$('resetPeriod').addEventListener('click',()=>{$('reportStart').value='';$('reportEnd').value='';render();});$('reportDateBasis').addEventListener('input',()=>{reportDateBasisChosen=true;render();});for(const id of ['reportStart','reportEnd'])$(id).addEventListener('input',render);for(const id of ['search','type','state'])$(id).addEventListener('input',render);start();
 </script></body></html>
 
 
