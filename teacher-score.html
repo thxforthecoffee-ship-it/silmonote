@@ -5,7 +5,7 @@
 <label>모의고사명<input id="title" maxlength="200" required></label>
 <label>시험일 (선택)<input id="examDate" type="date"><small>모르면 비워 두세요. 입력한 오늘 날짜를 시험일로 대신 저장하지 않습니다.</small></label>
 <label>원점수<input id="score" type="number" min="0" max="100" step="1" required></label>
-<label>등급 (선택)<input id="grade" type="number" min="1" max="9" step="1"></label>
+<label>영어 등급 (자동 계산)<input id="grade" type="text" readonly placeholder="점수를 입력하면 자동 계산"></label>
 <button id="save" type="submit">학생 기록에 저장</button></form><p id="status" role="status" aria-live="polite">접근 권한 확인 중…</p></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="score-entry-core.js"></script>
 <script>
@@ -14,9 +14,12 @@ const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
     const supabaseClient = window.supabase.createClient(url, key);
 AppAccess.watch(supabaseClient);
 const $=id=>document.getElementById(id);let students=[],saving=false;
+function updateGrade(){$('grade').value=ScoreEntry.gradeFromScore($('score').value)||'';}
+$('score').addEventListener('input',updateGrade);
 async function init(){try{const access=await AppAccess.requireAccess(supabaseClient,true);const r=await supabaseClient.from('profiles').select('id,name,email,is_approved').eq('is_approved',true).order('name');AppAccess.assertCurrent(access.version);if(r.error)throw Error('학생 목록을 불러오지 못했습니다.');students=r.data||[];for(const p of students){const o=document.createElement('option');o.value=p.id;o.textContent=(p.name||'이름 미입력')+(students.filter(x=>x.name===p.name).length>1?' · '+p.email:'');$('student').appendChild(o);}$('entry').inert=false;$('status').textContent='';}catch(e){$('status').textContent=e.message;}}
 $('entry').addEventListener('submit',async event=>{event.preventDefault();if(saving)return;saving=true;$('save').disabled=true;try{
  const access=await AppAccess.requireAccess(supabaseClient,true);
+ updateGrade();
  const p=ScoreEntry.payload({title:$('title').value,score:$('score').value,grade:$('grade').value,date:$('examDate').value},students.find(s=>s.id===$('student').value));
  let q=supabaseClient.from('score_reports').select('id,real_score,exam_date').eq('user_id',p.user_id).eq('exam_title',p.exam_title).is('deleted_at',null);q=p.exam_date?q.eq('exam_date',p.exam_date):q.is('exam_date',null);
  const duplicate=await q.limit(10);AppAccess.assertCurrent(access.version);if(duplicate.error)throw Error('중복 여부를 확인하지 못해 저장하지 않았습니다.');

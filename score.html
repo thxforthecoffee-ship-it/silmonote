@@ -443,7 +443,7 @@
       <div style="display:flex; gap:5px; align-items:center;">
 
         <input
-          type="text"
+          type="number" min="0" max="100" step="1"
           id="realScore"
           placeholder="원점수"
           required
@@ -454,8 +454,8 @@
         <input
           type="text"
           id="realGrade"
-          placeholder="등급"
-          required
+          placeholder="영어 등급 자동 계산"
+          readonly
         >
 
       </div>
@@ -951,6 +951,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app-access.js"></script>
 <script src="english-domain-core.js"></script>
+<script src="score-entry-core.js"></script>
 
 
 <script>
@@ -964,6 +965,8 @@
   const supabaseClient =
     window.supabase.createClient(url, key);
   AppAccess.watch(supabaseClient);
+  function updateRealGrade(){document.getElementById('realGrade').value=ScoreEntry.gradeFromScore(document.getElementById('realScore').value)||'';}
+  document.getElementById('realScore').addEventListener('input',updateRealGrade);
 
 
   /* ==========================================
@@ -1307,8 +1310,7 @@
     document.getElementById('realScore').value =
       data.real_score ?? '';
 
-    document.getElementById('realGrade').value =
-      data.real_grade || '';
+    updateRealGrade();
 
     document.getElementById('perceivedDifficulty').value =
       data.perceived_difficulty || '보통';
@@ -1495,6 +1497,8 @@
         };
 
 
+      const computedGrade = ScoreEntry.requiredGrade(document.getElementById('realScore').value);
+      updateRealGrade();
       const reportData = {
 
         user_id:
@@ -1526,7 +1530,7 @@
 
 
         real_grade:
-          document.getElementById('realGrade').value.trim(),
+          computedGrade,
 
 
         perceived_difficulty:
