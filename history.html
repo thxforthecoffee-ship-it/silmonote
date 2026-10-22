@@ -27,6 +27,7 @@
  body.teacher-report-print td,body.teacher-report-print th{overflow-wrap:anywhere}
  body.teacher-report-print #scoreChart svg{min-width:0!important;width:100%;height:auto}
 }
+#status:empty,#reportPeriod:empty,#reportCoverage:empty,#coverage:empty,#reportError:empty{display:none}
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
 <nav class="no-print" aria-label="과목 선택"><a href="history.html" aria-current="page">영어 리포트</a> · <a href="korean.html">국어 기록 · 리포트 →</a></nav>
@@ -99,8 +100,8 @@ function renderReport(){
  const start=$('reportStart').value,end=$('reportEnd').value;
  $('reportError').textContent=start&&end&&start>end?'시작일은 종료일보다 늦을 수 없습니다. 기간을 다시 선택해 주세요.':'';
  const option=$('student').selectedOptions[0];$('reportStudent').textContent=identity&&identity.isAdmin?(option?option.textContent:'선택한 계정'):'내 학습 기록';
- $('reportPeriod').textContent=(start||'처음')+' ~ '+(end||'최근')+' · '+($('reportDateBasis').value==='exam'?'실제 시험일 기준':'기존 분석지의 한국시간 제출일 기준');
- $('reportCoverage').textContent=(more.note||more.score)?'불러온 일부 기록으로 작성한 리포트입니다. 전체 기간을 보려면 아래에서 이전 기록을 더 불러오세요.':'접근 가능한 활성 기록을 모두 반영했습니다. 휴지통 기록은 제외합니다.';
+ $('reportPeriod').textContent=start&&end?start+' ~ '+end:start?start+' ~':end?'~ '+end:'';
+ $('reportCoverage').textContent=(more.note||more.score)?'일부 기록만 반영했습니다.':'';
  $('reportExams').textContent=scores.length+'건';$('reportAverage').textContent=values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(1)+'점':'미기록';
  const datedScores=scores.filter(r=>reportDateKey(r));$('reportLatest').textContent=datedScores.length?scoreDisplay(datedScores[datedScores.length-1].real_score):'미기록';$('reportFeedback').textContent=subset.filter(r=>r.feedback).length+'건';
  $('scoreChartCaption').textContent=`차트 ${datedScores.length}/${scores.length}건 · * 임의 날짜`;
@@ -153,7 +154,7 @@ function renderPlans(subset){
 function render(){
  renderReport();
  const scores=records.filter(r=>r.type==='score');$('total').textContent=records.length;$('scores').textContent=scores.length;$('notes').textContent=records.length-scores.length;$('feedback').textContent=records.filter(r=>r.feedback).length;
- $('coverage').textContent=(more.note||more.score)?'일부 기록을 불러왔습니다. 아래 ‘이전 기록 더 불러오기’를 누르면 요약과 목록에 추가됩니다.':'접근 가능한 활성 기록을 모두 불러왔습니다. 휴지통 기록은 제외합니다.';
+ $('coverage').textContent=(more.note||more.score)?'일부 기록만 반영했습니다.':'';
  const tbody=$('scoreRows');tbody.replaceChildren();for(const r of periodRecords().filter(r=>r.type==='score').sort(compareReport).reverse()){const tr=element('tr');for(const value of [reportDateLabel(r),r.exam_title||'제목 없음',r.real_score===null||r.real_score===undefined||r.real_score===''?'미입력':r.real_score+'점',r.real_grade===null||r.real_grade===undefined||r.real_grade===''?'미입력':r.real_grade+'등급',present(r.target_score)?r.target_score+'점':'미기록',present(r.perceived_difficulty)?r.perceived_difficulty:'미기록'])tr.appendChild(element('td',value));tbody.appendChild(tr);}if(!periodRecords().some(r=>r.type==='score')){const td=element('td','선택 기간에 불러온 모의고사 분석지가 없습니다.');td.colSpan=6;const tr=element('tr');tr.appendChild(td);tbody.appendChild(tr);}
  const query=$('search').value.trim().toLocaleLowerCase(), type=$('type').value,state=$('state').value;
  const filtered=records.filter(r=>(type==='all'||r.type===type)&&(state==='all'||(state==='done')===Boolean(r.feedback))&&((text(r.exam_title)+' '+text(r.question_info)).toLocaleLowerCase().includes(query))).sort(compare);
@@ -181,7 +182,7 @@ async function load(reset=false){
  const [notes,scores]=await Promise.all([more.note?fetchPage('note',owner,cursors.note):[],more.score?fetchPage('score',owner,cursors.score):[]]);
  AppAccess.assertCurrent(access.version);if(ticket!==generation)return;
  for(const [type,rows] of [['note',notes],['score',scores]]){if(!more[type])continue;more[type]=rows.length>PAGE_SIZE;const page=rows.slice(0,PAGE_SIZE);if(page.length)cursors[type]=page[page.length-1];const existing=new Set(records.map(r=>r.type+':'+r.id));records.push(...page.filter(r=>!existing.has(r.type+':'+r.id)));}
- chooseReportDateBasis();$('content').hidden=false;$('status').textContent='기록을 불러왔습니다.';render();
+ chooseReportDateBasis();$('content').hidden=false;$('status').textContent='';render();
  }catch(error){if(ticket!==generation)return;records=[];cursors={note:null,score:null};more={note:true,score:true};$('content').hidden=true;render();$('status').className='error';$('status').textContent=(error instanceof Error?error.message:'불러오기에 실패했습니다.')+' 새로고침 버튼으로 다시 시도할 수 있습니다.';}
  finally{if(ticket===generation){busy=false;controls();}}
 }
