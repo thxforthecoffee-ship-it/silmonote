@@ -72,16 +72,16 @@ test('report cards render new suggestions alongside unchanged saved originals', 
 
 test('admin priority suggestions use the updated long and flow wording', () => {
   const html = read('history.html');
-  const nodes = {adminRateCards: new Element('div'), adminPriorities: new Element('ol')};
+  const nodes = {adminRateCards: new Element('div'), adminPriorities: new Element('ol'), adminRecent: new Element('div'), reportDateBasis: {value:'exam'}};
   const rows = [{type: 'score', loss_grammar: {},
     loss_long: {assessment: {version: 1, correct: 1, incorrect: 1}},
     loss_flow: {assessment: {version: 1, correct: 3, incorrect: 2}}}];
-  const render = new Function('identity', '$', 'element', 'AdminReview', 'EnglishDomains', 'records',
+  const render = new Function('identity', '$', 'element', 'AdminReview', 'EnglishDomains', 'records', 'more',
     html.slice(html.indexOf('function reviewEvidenceLink('), html.indexOf('function renderReport(')) + ';return renderAdminReview;')(
-      {isAdmin: true}, id => nodes[id], (tag, text) => new Element(tag, text), require('../admin-review-core.js'), D, rows);
+      {isAdmin: true}, id => nodes[id], (tag, text) => new Element(tag, text), require('../admin-review-core.js'), D, rows, {score:false});
   render(rows, rows);
   assert.match(nodes.adminPriorities.allText(), /문맥상 낱말을/);
-  assert.match(nodes.adminPriorities.allText(), /반복 낱말을/);
+  rows[0].loss_long.assessment.incorrect=0; rows[0].loss_long.assessment.correct=2; render(rows,rows); assert.match(nodes.adminPriorities.allText(), /반복 낱말을/);
   assert.doesNotMatch(nodes.adminPriorities.allText(), /어휘/);
 });
 
