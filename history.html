@@ -11,7 +11,7 @@
 
 @media print{
  body.teacher-report-print main>h1,body.teacher-report-print main>h1+p,body.teacher-report-print .report-metrics,body.teacher-report-print .admin-review-actions,body.teacher-report-print #adminReview .report-link,body.teacher-report-print .admin-fold>summary,body.teacher-report-print .domain-note-evidence,body.teacher-report-print .domain-teacher-feedback,body.teacher-report-print .domain-edit-controls,body.teacher-report-print .domain-legacy{display:none!important}
- body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger),body.teacher-report-print #adminPriorities li>span{display:none!important}
+ body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger):not(#strategyPanel),body.teacher-report-print #adminPriorities li>span{display:none!important}
  body.teacher-report-print #adminReview,body.teacher-report-print .admin-fold,body.teacher-report-print .admin-fold>.panel{break-inside:auto;page-break-inside:auto}
  body.teacher-report-print .admin-fold{border:0;padding:0;margin:12px 0}
  body.teacher-report-print .admin-fold>.panel{border:1px solid #ccd8d8;padding:14px}
@@ -29,6 +29,7 @@
 }
 #teacherAssignments textarea{display:block;width:100%;min-height:80px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}#teacherAssignments label{margin:12px 0}#teacherAssignments button{margin:6px 8px 6px 0}#teacherAssignments article{border-top:1px solid #dde3ed;padding:12px 0;white-space:pre-wrap}#teacherAssignments strong{overflow-wrap:anywhere}
 #status:empty,#reportPeriod:empty,#reportCoverage:empty,#coverage:empty,#reportError:empty{display:none}
+#strategyPanel textarea{display:block;width:100%;min-height:100px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}#strategyPanel article{padding:12px 0;border-top:1px solid #dde3ed;overflow-wrap:anywhere}#strategyPanel .strategy-summary{white-space:pre-wrap}#strategyPanel button{margin:6px 8px 6px 0}@media print{#strategyPanel [data-strategy-private]{display:none!important}#strategyPanel{break-inside:avoid}}
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
 <nav class="no-print" aria-label="과목 선택"><a href="history.html" aria-current="page">영어 리포트</a> · <a href="korean.html">국어 기록 · 리포트 →</a></nav>
@@ -42,6 +43,7 @@
 <p id="reportError" role="status"></p><p id="reportPeriod" class="muted"></p><p id="reportCoverage" class="muted"></p>
 <div class="report-metrics"><div class="report-metric">성적 기록 수<strong id="reportExams">—</strong></div><div class="report-metric">기록된 원점수 평균<strong id="reportAverage">—</strong></div><div class="report-metric">선택 기준 최근 점수<strong id="reportLatest">—</strong></div><div class="report-metric">기간 내 피드백<strong id="reportFeedback">—</strong></div></div>
 </section>
+<section id="strategyPanel" class="panel" hidden aria-label="풀이 전략"></section>
 <section id="adminReview" class="panel" hidden aria-labelledby="adminReviewTitle"><div class="section-number">TEACHER REVIEW</div><h2 id="adminReviewTitle">다음 피드백 준비</h2><div id="adminRecent"></div><h3>먼저 볼 유형 · 최대 2개</h3><div id="adminRateCards" class="admin-review-grid"></div><h3>이번에 결정할 과제</h3><ol id="adminPriorities" class="admin-priorities"></ol><div class="admin-review-actions"><button id="reviewMore" type="button" hidden>이전 기록 더 불러오기</button></div></section>
 <section id="teacherAssignments" class="panel" hidden aria-label="관리자 개인 과제 기록"></section>
 <section class="panel" aria-labelledby="trendTitle"><div class="section-number">01 / SCORE RECORD</div><h2 id="trendTitle">점수 흐름과 월별 기록</h2><p id="scoreChartCaption" class="report-caption" aria-live="polite"></p><div id="scoreChart" class="chart-frame"></div><div class="table-scroll"><table class="report-table"><thead><tr><th>기준 월</th><th>성적 기록</th><th>유효 점수</th><th>원점수 평균</th><th>최저 / 최고</th><th>피드백</th></tr></thead><tbody id="monthRows"></tbody></table></div></section>
@@ -51,8 +53,8 @@
 <section id="loadedSummary" class="panel" aria-labelledby="summaryTitle"><h2 id="summaryTitle">불러온 기록 요약</h2><div class="stats"><div class="stat">전체 기록<strong id="total">0</strong></div><div class="stat">모의고사 성적 기록<strong id="scores">0</strong></div><div class="stat">심화 오답노트<strong id="notes">0</strong></div><div class="stat">피드백 작성<strong id="feedback">0</strong></div></div><p id="coverage" class="muted"></p></section>
 
 <section id="recordSection" class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 성적 기록</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
-</div><footer>이 페이지는 조회 전용입니다. 피드백 작성·수정은 기존 상세보기에서 진행합니다.</footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="report-print.js"></script><script>
+</div><footer>성적과 학생 원문은 기존 상세보기에서 확인할 수 있습니다.</footer>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js"></script><script src="report-print.js"></script><script>
 'use strict';
 const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
 const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -62,6 +64,7 @@ const PAGE_SIZE = 100;
 let client, identity, selectedId, generation = 0, busy = false;
 let reportDateBasisChosen = false;
 let assignmentPanel = null, assignmentStudentId = null;
+let strategyPanel = null, strategyStudentId = null;
 let records = [], cursors = {note:null,score:null}, more = {note:true,score:true};
 const text = value => typeof value === 'string' ? value : '';
 const quote = value => '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
@@ -83,6 +86,10 @@ function periodRecords(){const start=$('reportStart').value,end=$('reportEnd').v
 function scoreDisplay(v){const n=numericScore(v);return n===null?'미기록':n+'점';}
 function recordLink(r,label){const a=element('a',label||r.exam_title||'제목 없음','report-link');a.href=(r.type==='note'?'view.html':'score_view.html')+'?id='+encodeURIComponent(r.id);return a;}
 function reportSource(r){const p=element('p',dateLabel(r.created_at)+' · ','muted');p.appendChild(recordLink(r));return p;}
+function setupStrategyPanel(){
+ $('strategyPanel').hidden=false;
+ strategyPanel=StrategyPanel.create({container:$('strategyPanel'),client,assertCurrent:AppAccess.assertCurrent,verifyAccess:async()=>{const access=await AppAccess.requireAccess(client);if(access.user.id!==identity.user.id||access.isAdmin!==identity.isAdmin)throw new Error('계정 또는 권한이 변경되었습니다. 새로고침해 주세요.');AppAccess.assertCurrent(access.version);return access;}});
+}
 function setupAdminReview(){
  if(!identity?.isAdmin)return;
  $('adminReview').hidden=false;$('teacherAssignments').hidden=false;
@@ -186,6 +193,7 @@ async function fetchPage(type,owner,cursor){
 }
 async function load(reset=false){
  if(busy&&!reset)return;const ticket=++generation;busy=true;$('status').className='';$('status').textContent='기록을 불러오는 중입니다.';
+ if(reset&&strategyPanel){const target=identity.isAdmin&&selectedId===identity.user.id?'':selectedId;if(strategyStudentId!==target){strategyStudentId=target;strategyPanel.selectStudent(target);}else strategyPanel.refresh();}
  if(reset){if(assignmentPanel){if(assignmentStudentId!==selectedId){assignmentStudentId=selectedId;assignmentPanel.selectStudent(selectedId===identity.user.id?'':selectedId);}else assignmentPanel.refresh();}records=[];cursors={note:null,score:null};more={note:true,score:true};$('content').hidden=true;render();}controls();
  try{
  const access=await AppAccess.requireAccess(client);if(ticket!==generation)return;
@@ -204,7 +212,7 @@ async function students(access){
  let offset=0,total=0;while(total<1000){const result=await client.from('profiles').select('id,name').eq('is_approved',true).order('id',{ascending:true}).range(offset,offset+99);AppAccess.assertCurrent(access.version);if(result.error||!Array.isArray(result.data))throw new Error('학생 목록을 불러오지 못했습니다. 현재 내 기록만 표시합니다.');for(const p of result.data){if(p.id===access.user.id)continue;const option=element('option',(p.name||'이름 없음')+' · '+String(p.id).slice(0,8));option.value=p.id;select.appendChild(option);}total+=result.data.length;offset+=result.data.length;if(result.data.length<100)break;}
  $('studentStatus').textContent=total>=1000?'승인된 계정 최대 1,000개까지만 표시합니다.':'기존 학원 관리자 권한으로 접근 가능한 승인 계정입니다.';
 }
-async function start(){try{if(!window.supabase||!window.AppAccess)throw new Error('필수 파일을 불러오지 못했습니다. 인터넷 연결과 app-access.js 파일을 확인해 주세요.');client=window.supabase.createClient(HISTORY_URL,HISTORY_ANON_KEY);AppAccess.watch(client);client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&session.user.id!==identity.user.id)){assignmentPanel?.invalidate();assignmentStudentId=null;}});identity=await AppAccess.requireAccess(client);setupAdminReview();selectedId=identity.user.id;if(identity.isAdmin){$('homeLink').href='admin.html';$('homeLink').textContent='← 관리자 모드';try{await students(identity);const requested=new URLSearchParams(location.search).get('student');if(requested){if([...$('student').options].some(option=>option.value===requested)){selectedId=requested;$('student').value=requested;}else{$('studentStatus').textContent='해당 학생이 조회 가능한 승인 계정 목록에 없습니다. 다른 학생을 선택해 주세요.';}}}catch(error){const select=$('student');while(select.options.length>1)select.remove(1);$('studentStatus').textContent=error.message;}}await load(true);}catch(error){$('status').className='error';$('status').textContent=error.message;}}
+async function start(){try{if(!window.supabase||!window.AppAccess)throw new Error('필수 파일을 불러오지 못했습니다. 인터넷 연결과 app-access.js 파일을 확인해 주세요.');client=window.supabase.createClient(HISTORY_URL,HISTORY_ANON_KEY);AppAccess.watch(client);client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&session.user.id!==identity.user.id)){assignmentPanel?.invalidate();assignmentStudentId=null;strategyPanel?.invalidate();strategyStudentId=null;}});identity=await AppAccess.requireAccess(client);setupAdminReview();selectedId=identity.user.id;setupStrategyPanel();if(identity.isAdmin){$('homeLink').href='admin.html';$('homeLink').textContent='← 관리자 모드';try{await students(identity);const requested=new URLSearchParams(location.search).get('student');if(requested){if([...$('student').options].some(option=>option.value===requested)){selectedId=requested;$('student').value=requested;}else{$('studentStatus').textContent='해당 학생이 조회 가능한 승인 계정 목록에 없습니다. 다른 학생을 선택해 주세요.';}}}catch(error){const select=$('student');while(select.options.length>1)select.remove(1);$('studentStatus').textContent=error.message;}}await load(true);}catch(error){$('status').className='error';$('status').textContent=error.message;}}
 $('refresh').addEventListener('click',()=>identity?load(true):location.reload());$('more').addEventListener('click',()=>load());$('reviewMore').addEventListener('click',()=>load());$('student').addEventListener('change',()=>{selectedId=$('student').value;load(true);});const reportPrint=ReportPrint.create({document,window,isAdmin:()=>Boolean(identity?.isAdmin)});$('printReport').addEventListener('click',()=>{try{reportPrint.print();}catch(error){$('status').textContent='인쇄 창을 열지 못했습니다. 브라우저의 인쇄 메뉴를 사용해 주세요.';}});$('resetPeriod').addEventListener('click',()=>{$('reportStart').value='';$('reportEnd').value='';render();});$('reportDateBasis').addEventListener('input',()=>{reportDateBasisChosen=true;render();});for(const id of ['reportStart','reportEnd'])$(id).addEventListener('input',render);for(const id of ['search','type','state'])$(id).addEventListener('input',render);start();
 </script></body></html>
 
