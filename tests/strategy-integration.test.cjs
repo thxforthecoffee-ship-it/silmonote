@@ -30,3 +30,11 @@ test('manual strategy is entirely excluded from both admin and student print',()
  assert.match(html,/@media print\{[^\n]*\.no-print\{display:none!important\}/);
  for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new Function(m[1]);
 });
+test('current strategy display and schedule editor retain responsive and print boundaries',()=>{
+ const panel=fs.readFileSync('strategy-panel.js','utf8');
+ assert(panel.includes("el('h2','현재 풀이 전략')"));
+ for(const selector of ['strategy-header','strategy-timeline','strategy-step-time','strategy-step-task','strategy-deferred','strategy-editor-row','strategy-cancel','strategy-legacy-view'])assert(panel.includes(selector));
+ assert(html.includes('@media(max-width:650px)'));
+ assert(html.includes('#strategyPanel .strategy-timeline li{grid-template-columns:1fr'));
+ assert(html.includes('@media print{#strategyPanel{display:none!important}}'));
+});
