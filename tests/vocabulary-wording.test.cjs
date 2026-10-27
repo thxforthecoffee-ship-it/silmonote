@@ -77,7 +77,7 @@ test('admin priority suggestions use the updated long and flow wording', () => {
     loss_long: {assessment: {version: 1, correct: 1, incorrect: 1}},
     loss_flow: {assessment: {version: 1, correct: 3, incorrect: 2}}}];
   const render = new Function('identity', '$', 'element', 'AdminReview', 'EnglishDomains', 'records', 'more',
-    html.slice(html.indexOf('function reviewEvidenceLink('), html.indexOf('function renderReport(')) + ';return renderAdminReview;')(
+    html.slice(html.indexOf('function renderAdminReview('), html.indexOf('function renderReport(')) + ';return renderAdminReview;')(
       {isAdmin: true}, id => nodes[id], (tag, text) => new Element(tag, text), require('../admin-review-core.js'), D, rows, {score:false});
   render(rows, rows);
   assert.match(nodes.adminPriorities.allText(), /문맥상 낱말을/);
