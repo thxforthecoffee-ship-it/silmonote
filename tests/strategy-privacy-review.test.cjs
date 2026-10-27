@@ -29,3 +29,10 @@ test('all report source anchors are removed without removing primary navigation'
  for(const link of ['href="main.html"','href="history.html"','href="korean.html"'])assert(html.includes(link));
  assert(html.includes("$('homeLink').href='admin.html'"));
 });
+test('readonly display uses only the confirmed row, never draft inputs or generated suggestions',()=>{
+ const start=panel.indexOf('function renderView('),end=panel.indexOf('function clear(',start);assert(start>=0&&end>start);const render=panel.slice(start,end);
+ assert(render.includes('decodePlan(row.plan_text)'));
+ assert(!/readValues|\.value|pending\.plan_text/.test(render));
+ assert(!render.includes('모아 제안'));
+ for(const label of ['strategy-timeline','strategy-deferred','strategy-legacy-view'])assert(render.includes(label));
+});
