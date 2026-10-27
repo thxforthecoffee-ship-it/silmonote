@@ -11,7 +11,7 @@
 
 @media print{
  body.teacher-report-print main>h1,body.teacher-report-print main>h1+p,body.teacher-report-print .report-metrics,body.teacher-report-print .admin-review-actions,body.teacher-report-print #adminReview .report-link,body.teacher-report-print .admin-fold>summary,body.teacher-report-print .admin-priority-details>summary,body.teacher-report-print .domain-note-evidence,body.teacher-report-print .domain-teacher-feedback,body.teacher-report-print .domain-edit-controls,body.teacher-report-print .domain-legacy{display:none!important}
- body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger):not(#strategyPanel),body.teacher-report-print #adminPriorities li>span{display:none!important}
+ body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger),body.teacher-report-print #adminPriorities li>span{display:none!important}
  body.teacher-report-print #adminReview,body.teacher-report-print .admin-fold,body.teacher-report-print .admin-fold>.panel{break-inside:auto;page-break-inside:auto}
  body.teacher-report-print .admin-fold{border:0;padding:0;margin:12px 0}
  body.teacher-report-print .admin-fold>.panel{border:1px solid #ccd8d8;padding:14px}
@@ -29,22 +29,12 @@
 }
 #teacherAssignments textarea{display:block;width:100%;min-height:80px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}#teacherAssignments label{margin:12px 0}#teacherAssignments button{margin:6px 8px 6px 0}#teacherAssignments article{border-top:1px solid #dde3ed;padding:12px 0;white-space:pre-wrap}#teacherAssignments strong{overflow-wrap:anywhere}
 #status:empty,#reportPeriod:empty,#reportCoverage:empty,#coverage:empty,#reportError:empty{display:none}
-#strategyPanel textarea{display:block;width:100%;min-height:140px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}
-#strategyPanel article{padding:14px 0;border-top:1px solid #dde3ed;overflow-wrap:anywhere}
-#strategyPanel .strategy-summary,#strategyPanel .strategy-details p{white-space:pre-wrap;overflow-wrap:anywhere}
-#strategyPanel .strategy-heading{display:flex;justify-content:space-between;align-items:start;gap:16px;position:relative}
-#strategyPanel .strategy-heading h2{margin:0}#strategyPanel .strategy-management{margin-left:auto;flex-shrink:0}
-#strategyPanel .strategy-management>details>summary{list-style:none;border:1px solid #d8e0eb;border-radius:8px;padding:4px 12px;font-size:14px}
-#strategyPanel .strategy-management>details>summary::-webkit-details-marker{display:none}
-#strategyPanel .strategy-menu-body{position:absolute;right:0;top:42px;width:min(480px,100%);padding:18px;background:#fff;border:1px solid #ccd7e5;border-radius:12px;box-shadow:0 8px 30px #17243b24;z-index:2}
-#strategyPanel .strategy-menu-body h3{margin:0 0 14px;font-size:16px}#strategyPanel .strategy-publish{display:flex;align-items:center;gap:8px;margin-top:12px}#strategyPanel input[type=checkbox]{width:auto}
-#strategyPanel button{margin:6px 8px 6px 0;font-size:14px}#strategyPanel .strategy-teacher-focus h3{font-size:14px;color:#5c6b80;margin:18px 0 6px}
-#strategyPanel .strategy-current{font-weight:650;font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#strategyPanel .strategy-attribution{font-size:12px;margin:6px 0 0}#strategyPanel .strategy-checks{padding-left:22px;margin:6px 0}#strategyPanel .strategy-checks li{padding:3px 0;overflow-wrap:anywhere}
-#strategyPanel .strategy-details{margin-top:20px;padding-top:12px;border-top:1px solid #e5eaf1}#strategyPanel .strategy-details>summary{font-size:14px}#strategyPanel .strategy-status:empty{display:none}
+#strategyPanel .strategy-input-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+#strategyPanel textarea{display:block;width:100%;min-height:120px;margin-top:6px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px;resize:vertical}
+#strategyPanel .strategy-input-form button{grid-column:1/-1;justify-self:start;min-width:90px}#strategyPanel .strategy-status:empty{display:none}
 .admin-priority-details{margin:8px 0;font-size:14px}.admin-priority-details>summary{font-size:14px}
-@media screen{#strategyPanel .strategy-summary-admin{display:none}}
-@media print{#strategyPanel [data-strategy-private]{display:none!important}#strategyPanel{break-inside:avoid}}
+@media(max-width:650px){#strategyPanel .strategy-input-form{grid-template-columns:1fr}#strategyPanel textarea{min-height:80px}}
+@media print{#strategyPanel{display:none!important}}
 
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
@@ -59,7 +49,7 @@
 <p id="reportError" role="status"></p><p id="reportPeriod" class="muted"></p><p id="reportCoverage" class="muted"></p>
 <div class="report-metrics"><div class="report-metric">성적 기록 수<strong id="reportExams">—</strong></div><div class="report-metric">기록된 원점수 평균<strong id="reportAverage">—</strong></div><div class="report-metric">선택 기준 최근 점수<strong id="reportLatest">—</strong></div><div class="report-metric">기간 내 피드백<strong id="reportFeedback">—</strong></div></div>
 </section>
-<section id="strategyPanel" class="panel" hidden aria-label="풀이 전략"></section>
+<section id="strategyPanel" class="panel no-print" hidden aria-label="풀이 전략"></section>
 <section id="adminReview" class="panel" hidden aria-labelledby="adminReviewTitle"><div class="section-number">TEACHER REVIEW</div><h2 id="adminReviewTitle">다음 피드백 준비</h2><div id="adminRecent"></div><h3>먼저 볼 유형 · 최대 2개</h3><div id="adminRateCards" class="admin-review-grid"></div><h3>이번에 결정할 과제</h3><ol id="adminPriorities" class="admin-priorities"></ol><div class="admin-review-actions"><button id="reviewMore" type="button" hidden>이전 기록 더 불러오기</button></div></section>
 <section id="teacherAssignments" class="panel" hidden aria-label="관리자 개인 과제 기록"></section>
 <section class="panel" aria-labelledby="trendTitle"><div class="section-number">01 / SCORE RECORD</div><h2 id="trendTitle">점수 흐름과 월별 기록</h2><p id="scoreChartCaption" class="report-caption" aria-live="polite"></p><div id="scoreChart" class="chart-frame"></div><div class="table-scroll"><table class="report-table"><thead><tr><th>기준 월</th><th>성적 기록</th><th>유효 점수</th><th>원점수 평균</th><th>최저 / 최고</th><th>피드백</th></tr></thead><tbody id="monthRows"></tbody></table></div></section>
@@ -69,8 +59,8 @@
 <section id="loadedSummary" class="panel" aria-labelledby="summaryTitle"><h2 id="summaryTitle">불러온 기록 요약</h2><div class="stats"><div class="stat">전체 기록<strong id="total">0</strong></div><div class="stat">모의고사 성적 기록<strong id="scores">0</strong></div><div class="stat">심화 오답노트<strong id="notes">0</strong></div><div class="stat">피드백 작성<strong id="feedback">0</strong></div></div><p id="coverage" class="muted"></p></section>
 
 <section id="recordSection" class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 성적 기록</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
-</div><footer>성적과 학생 원문은 기존 상세보기에서 확인할 수 있습니다.</footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js?v=20261027-compact"></script><script src="report-print.js?v=20261027-compact"></script><script>
+</div><footer>기록 작성·수정은 홈 또는 관리자 모드에서 진행할 수 있습니다.</footer>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js?v=20261027-manual"></script><script src="report-print.js?v=20261027-compact"></script><script>
 'use strict';
 const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
 const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -100,11 +90,11 @@ function reportDateLabel(r){const isExamDate=$('reportDateBasis')?.value==='exam
 function compareReport(a,b){return reportDateKey(b).localeCompare(reportDateKey(a))||compare(a,b);}
 function periodRecords(){const start=$('reportStart').value,end=$('reportEnd').value;if(start&&end&&start>end)return [];return records.filter(r=>{const d=reportDateKey(r);return (!start&&!end)||Boolean(d&&(!start||d>=start)&&(!end||d<=end));});}
 function scoreDisplay(v){const n=numericScore(v);return n===null?'미기록':n+'점';}
-function recordLink(r,label){const a=element('a',label||r.exam_title||'제목 없음','report-link');a.href=(r.type==='note'?'view.html':'score_view.html')+'?id='+encodeURIComponent(r.id);return a;}
-function reportSource(r){const p=element('p',dateLabel(r.created_at)+' · ','muted');p.appendChild(recordLink(r));return p;}
+function reportSource(r){return element('p',dateLabel(r.created_at)+' · '+(r.exam_title||'제목 없음'),'muted');}
 function setupStrategyPanel(){
+ if(!identity?.isAdmin)return;
  $('strategyPanel').hidden=false;
- strategyPanel=StrategyPanel.create({container:$('strategyPanel'),client,assertCurrent:AppAccess.assertCurrent,verifyAccess:async()=>{const access=await AppAccess.requireAccess(client);if(access.user.id!==identity.user.id||access.isAdmin!==identity.isAdmin)throw new Error('계정 또는 권한이 변경되었습니다. 새로고침해 주세요.');AppAccess.assertCurrent(access.version);return access;}});
+ strategyPanel=StrategyPanel.create({container:$('strategyPanel'),client,assertCurrent:AppAccess.assertCurrent,verifyAccess:async()=>{const access=await AppAccess.requireAccess(client,true);if(access.user.id!==identity.user.id||access.isAdmin!==identity.isAdmin)throw new Error('계정 또는 권한이 변경되었습니다. 새로고침해 주세요.');AppAccess.assertCurrent(access.version);return access;}});
 }
 function setupAdminReview(){
  if(!identity?.isAdmin)return;
@@ -114,7 +104,6 @@ function setupAdminReview(){
   const section=$(heading).closest('section');if($(id))continue;const details=element('details',undefined,'admin-fold');details.id=id;details.appendChild(element('summary',label));section.parentNode.insertBefore(details,section);details.appendChild(section);
  }
 }
-function reviewEvidenceLink(key,label){const a=element('a',label,'report-link');a.href='#domain-'+key;a.addEventListener('click',()=>{const details=$('reviewDomains');if(details)details.open=true;});return a;}
 function renderAdminReview(scores,subset){
  if(!identity?.isAdmin)return;
  const model=AdminReview.build(EnglishDomains,scores,subset.filter(r=>r.type==='note'),records),host=$('adminRateCards'),list=$('adminPriorities'),recent=$('adminRecent');host.replaceChildren();list.replaceChildren();recent.replaceChildren();
@@ -126,9 +115,9 @@ function renderAdminReview(scores,subset){
  if(!model.priorities.length){host.appendChild(element('p','오답 근거가 있는 우선 유형이 없습니다.','muted'));list.appendChild(element('li','먼저 확인할 것: 문항별 정오답과 저장된 강사 피드백을 확인하세요.'));return;}
  const {domain,feedback}=model.priorities[0],item=element('li');item.appendChild(element('strong',domain.label+' · 연습안 1개'));item.appendChild(element('p','모아 제안: '+domain.plan));
  const evidence=element('details',undefined,'admin-priority-details');evidence.appendChild(element('summary','자세히 보기'));
- if(feedback.length){item.appendChild(element('p','저장된 강사 피드백 후보와 대조 후 선택','muted'));const source=feedback[feedback.length-1];evidence.appendChild(element('p',source.feedback.length>240?source.feedback.slice(0,240)+'… (발췌)':source.feedback,'feedback'));evidence.appendChild(recordLink(source,'강사 피드백 원문 확인'));}
+ if(feedback.length){item.appendChild(element('p','저장된 강사 피드백 후보와 대조 후 선택','muted'));const source=feedback[feedback.length-1];evidence.appendChild(element('p',source.feedback.length>240?source.feedback.slice(0,240)+'… (발췌)':source.feedback,'feedback'));}
  else item.appendChild(element('p','연결된 강사 피드백 없음 · 강사가 확인 후 선택','muted'));
- evidence.appendChild(reviewEvidenceLink(domain.key,'문항 근거·개선안 보기'));item.appendChild(evidence);
+ if(feedback.length)item.appendChild(evidence);
  const actions=element('div',undefined,'admin-review-actions');for(const [label,action] of [['이번 과제로 선택','select'],['수정','edit'],['보류','defer']]){const button=element('button',label);button.type='button';button.addEventListener('click',()=>{assignmentPanel?.setSuggestion(domain.plan,action);$('teacherAssignments').scrollIntoView({behavior:'smooth',block:'start'});});actions.appendChild(button);}item.appendChild(actions);list.appendChild(item);
 }
 function renderReport(){
@@ -166,7 +155,7 @@ function renderDomains(scores,subset=scores){
   const card=element('div',undefined,'report-card');card.id='domain-'+key;card.appendChild(element('h3',label));card.appendChild(element('p','문항 범위: '+range,'muted'));
   card.appendChild(element('p',stats.total?(stats.estimated?'기록 기반 추정 ':'확인 문항 기준 ')+'정답률 '+stats.correctRate.toFixed(1)+'% · 오답률 '+stats.errorRate.toFixed(1)+'%':'전체 시험 비율 · 연결 가능한 분석지 자료부족','domain-rate'));
   const noteEvidence=subset.filter(r=>r.type==='note'&&EnglishDomains.parseQuestions(r.question_info,true).numbers.some(q=>EnglishDomains.questionMap[key].includes(q)));
-  if(noteEvidence.length){const evidence=element('details',undefined,'report-details domain-note-evidence');evidence.appendChild(element('summary',(typeof identity!=='undefined'&&identity?.isAdmin?'관련 노트 원문 보기 ':'노트 정오답 근거 보기 ')+noteEvidence.length+'건'));for(const r of noteEvidence){evidence.appendChild(reportSource(r));evidence.appendChild(element('p',(r.question_info||'문항 미확인')+' · '+(r.p1_result||'정오답 미확인')));}card.appendChild(evidence);}
+  if(noteEvidence.length){const evidence=element('details',undefined,'report-details domain-note-evidence');evidence.appendChild(element('summary',(typeof identity!=='undefined'&&identity?.isAdmin?'관련 노트 기록 ':'노트 정오답 기록 ')+noteEvidence.length+'건'));for(const r of noteEvidence){evidence.appendChild(reportSource(r));evidence.appendChild(element('p',(r.question_info||'문항 미확인')+' · '+(r.p1_result||'정오답 미확인')));}card.appendChild(evidence);}
   const plan=element('div',undefined,'feedback');plan.appendChild(element('strong','모아 제안'));plan.appendChild(element('p',stats.estimated?'기록 기반 추정 결과를 참고한 연습안입니다. 실제 오답 누락 여부를 먼저 점검한 뒤, 기록된 오답부터 복습하세요. '+domain.plan:EnglishDomains.suggestion(domain,stats,entries.length>0)));card.appendChild(plan);
   const feedback=EnglishDomains.feedbackCandidates(subset,domain);
   const teacher=element('details',undefined,'report-details domain-teacher-feedback');teacher.appendChild(element('summary','강사 피드백 참고 '+feedback.length+'건 · 유형명 언급 기준'));
@@ -174,7 +163,7 @@ function renderDomains(scores,subset=scores){
   if(!feedback.length)teacher.appendChild(element('p','이 유형을 명시한 강사 피드백이 없습니다. 유형 미분류 피드백은 아래 ‘기록별 선생님 피드백’에서 확인하세요.','muted'));
   for(const r of feedback.slice().reverse()){teacher.appendChild(reportSource(r));teacher.appendChild(element('div',r.feedback,'feedback'));}card.appendChild(teacher);
   if(entries.length){const details=element('details',undefined,'report-details domain-loss-evidence');details.appendChild(element('summary','보조 자료 · 저장된 문항·이유 '+entries.length+'건'));for(const {r,d}of entries.slice().reverse()){const entry=element('div',undefined,'record');entry.appendChild(reportSource(r));entry.appendChild(element('p','문항: '+(present(d.nums)?d.nums:'미기록')));entry.appendChild(element('p','이유: '+(present(d.reason)?d.reason:'미기록')));details.appendChild(entry);}card.appendChild(details);}
-  const edit=element('p',undefined,'muted domain-edit-controls');edit.appendChild(element('span','정오답 수는 본인 분석지 수정 화면에서 입력할 수 있습니다. '));if(scores.length)edit.appendChild(recordLink(scores[scores.length-1],'최근 분석지 상세보기'));card.appendChild(edit);host.appendChild(card);
+  const edit=element('p',undefined,'muted domain-edit-controls');edit.appendChild(element('span','정오답 수는 본인 분석지 수정 화면에서 입력할 수 있습니다. '));card.appendChild(edit);host.appendChild(card);
  }
  const legacyData=r=>r.loss_grammar?r.loss_grammar.legacy_unclassified:r.loss_long;
  const legacy=scores.filter(r=>{const d=legacyData(r);return d&&(present(d.nums)||present(d.reason));});
@@ -195,7 +184,7 @@ function render(){
  const query=$('search').value.trim().toLocaleLowerCase(), type=$('type').value,state=$('state').value;
  const filtered=records.filter(r=>(type==='all'||r.type===type)&&(state==='all'||(state==='done')===Boolean(r.feedback))&&((text(r.exam_title)+' '+text(r.question_info)).toLocaleLowerCase().includes(query))).sort(compare);
  $('filterCount').textContent=`불러온 ${records.length}건 중 ${filtered.length}건 표시 · 최신 제출순`;
- $('records').replaceChildren();for(const r of filtered){const item=element('article',undefined,'record');item.appendChild(element('span',r.type==='note'?'심화 오답노트':r.record_kind==='score_only'?'점수 기록':'모의고사 분석지','tag'));const heading=element('h3');const link=element('a',(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));link.href=(r.type==='note'?'view.html':'score_view.html')+'?id='+encodeURIComponent(r.id);heading.appendChild(link);item.appendChild(heading);item.appendChild(element('p','제출일 '+dateLabel(r.created_at)+(r.type==='note'&&r.test_date?' · 시험일 '+r.test_date:r.type==='score'?' · 시험일 '+(examDateKey(r.exam_date)||'미상')+(r.exam_date_precision==='month'?' (임의 날짜)':''):''),'muted'));item.appendChild(element('span',r.feedback?'피드백 작성됨':'피드백 미작성',r.feedback?'tag done':'tag'));if(r.feedback){const details=element('details');details.appendChild(element('summary','선생님 피드백 펼치기'));details.appendChild(element('div',r.feedback,'feedback'));item.appendChild(details);} $('records').appendChild(item);}if(!filtered.length)$('records').appendChild(element('p',records.length?'조건에 맞는 기록이 없습니다.':'아직 제출된 기록이 없습니다.','empty'));controls();
+ $('records').replaceChildren();for(const r of filtered){const item=element('article',undefined,'record');item.appendChild(element('span',r.type==='note'?'심화 오답노트':r.record_kind==='score_only'?'점수 기록':'모의고사 분석지','tag'));const heading=element('h3',(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));item.appendChild(heading);item.appendChild(element('p','제출일 '+dateLabel(r.created_at)+(r.type==='note'&&r.test_date?' · 시험일 '+r.test_date:r.type==='score'?' · 시험일 '+(examDateKey(r.exam_date)||'미상')+(r.exam_date_precision==='month'?' (임의 날짜)':''):''),'muted'));item.appendChild(element('span',r.feedback?'피드백 작성됨':'피드백 미작성',r.feedback?'tag done':'tag'));if(r.feedback){const details=element('details');details.appendChild(element('summary','선생님 피드백 펼치기'));details.appendChild(element('div',r.feedback,'feedback'));item.appendChild(details);} $('records').appendChild(item);}if(!filtered.length)$('records').appendChild(element('p',records.length?'조건에 맞는 기록이 없습니다.':'아직 제출된 기록이 없습니다.','empty'));controls();
 }
 async function fetchPage(type,owner,cursor){
  const table=type==='note'?'notes':'score_reports';

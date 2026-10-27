@@ -1,62 +1,63 @@
-/* Source evidence and student summaries live in separate RLS-protected tables. */
+/* Instructor-only manual strategy. Imported records and published summaries are never changed here. */
 (function(root){'use strict';
-const PUBLIC_TABLE='student_strategy_summaries',PRIVATE_TABLE='teacher_strategy_records';
-const PRIVATE_FIELDS='id,teacher_id,student_id,source_key,source_label,source_excerpt,event_date,date_precision,record_type,exam_label,reason_text,plan_text,observation_text,result_text,next_check_text';
-function validateSummary(text,published){const summary_text=String(text||'').trim();if(!summary_text||summary_text.length>2000)throw Error('요약은 공개 여부와 관계없이 1~2000자로 입력해 주세요.');return {summary_text,is_published:Boolean(published)};}
-function dateLabel(row){const value=String(row.event_date||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T00:00:00Z'))||new Date(value+'T00:00:00Z').toISOString().slice(0,10)!==value)return '날짜 미상';if(row.date_precision==='month')return value.slice(0,7)+' · 일자 미상';return row.date_precision==='exact'?value:'날짜 미상';}
-// Presentation-only excerpts; full stored text stays available in the details and print path.
-function sentences(value){return String(value||'').trim().split(/\n+|(?<=[.!?。])\s+/).map(s=>s.replace(/^\s*[-•]\s*/, '').trim()).filter(Boolean);}
-function excerpt(value,max=180){const text=String(value||'').replace(/\s+/g,' ').trim();return text.length>max?text.slice(0,max).trimEnd()+'…':text;}
-function sharedParts(rows){const strategy=[],checks=[];for(const row of rows){let proposal=false;for(const line of String(row.summary_text||'').split(/\n+/)){const match=line.match(/^\s*(모아 제안|다음 확인)\s*[:：]\s*(.*)$/);if(match){proposal=true;checks.push(...sentences(match[2]));}else if(line.trim()){(proposal?checks:strategy).push(...sentences(line));}}}return{strategy,checks};}
-function create({container,client,verifyAccess,assertCurrent=()=>{},document=container.ownerDocument,makeId=()=>root.crypto.randomUUID()}){
- let studentId='',actor=null,generation=0,busy=false,destroyed=false,summaryRows=[],privateRows=[],editing=null,draftId=makeId(),dirty=false,offset=0;
- function el(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
- function button(text,handler){const b=el('button',text);b.type='button';b.addEventListener('click',handler);return b;}
- const heading=el('div',undefined,'strategy-heading');heading.appendChild(el('h2','풀이 전략'));
- const summary=el('section');summary.className='strategy-summary';summary.setAttribute('data-strategy-summary','');const summaryBody=el('div');summary.appendChild(el('p','현재 공유된 전략 · 성적 조회 기간과 별도','muted'));summary.appendChild(summaryBody);
- const message=el('p');message.className='no-print strategy-status';message.setAttribute('role','status');
- const teacher=el('section');teacher.className='no-print strategy-private';teacher.setAttribute('data-strategy-private','');teacher.hidden=true;const focus=el('section');focus.className='strategy-teacher-focus';teacher.appendChild(focus);
- const management=el('div',undefined,'no-print strategy-management');management.setAttribute('data-strategy-private','');management.hidden=true;
- const editor=el('details');editor.open=false;const menuToggle=el('summary','관리');editor.appendChild(menuToggle);const menuBody=el('div',undefined,'strategy-menu-body');menuBody.appendChild(el('h3','학생 요약 · 공개 관리'));
- const form=el('form'),label=el('label','학생에게 보여줄 전략 과정'),input=el('textarea');input.name='summary_text';input.maxLength=2000;label.appendChild(input);form.appendChild(label);
- const publishLabel=el('label','학생에게 요약 공개'),publish=el('input');publish.type='checkbox';publish.name='is_published';publishLabel.className='strategy-publish';publishLabel.appendChild(publish);form.appendChild(publishLabel);form.appendChild(el('p','원문 메모·비공개 관찰은 넣지 마세요.','muted'));
- const save=el('button','요약 · 공개 여부 저장');save.type='submit';form.appendChild(save);const reset=button('저장된 요약으로 되돌리기',()=>{dirty=false;fillDraft();message.textContent='저장된 요약을 다시 불러왔습니다.';});form.appendChild(reset);
- function closeMenu(){editor.open=false;menuToggle.focus?.();}
- const cancel=button('취소',()=>{if(busy)return;dirty=false;fillDraft();closeMenu();message.textContent='변경을 취소했습니다.';});form.appendChild(cancel);const close=button('닫기',closeMenu);form.appendChild(close);menuBody.appendChild(form);editor.appendChild(menuBody);management.appendChild(editor);heading.appendChild(management);
- editor.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();closeMenu();}});
- const evidence=el('details',undefined,'strategy-details');evidence.open=false;evidence.appendChild(el('summary','자세히 보기'));const sharedDetail=el('section');evidence.appendChild(sharedDetail);const sourceList=el('div'),more=button('이전 근거 더 보기',()=>loadPrivate(true));more.hidden=true;evidence.appendChild(sourceList);evidence.appendChild(more);teacher.appendChild(evidence);
- const refreshButton=button('풀이 전략 새로고침',()=>refresh());refreshButton.className='no-print strategy-refresh';const adminRefresh=button('풀이 전략 새로고침',()=>refresh());menuBody.appendChild(adminRefresh);container.replaceChildren(heading,summary,message,teacher,refreshButton);
- form.addEventListener('input',()=>{dirty=true;});form.addEventListener('submit',event=>{event.preventDefault();saveSummary();});
- function current(ticket,student){return !destroyed&&ticket===generation&&student===studentId;}
- function controls(){const canWrite=Boolean(actor?.admin&&studentId&&!busy&&!destroyed);input.disabled=publish.disabled=save.disabled=reset.disabled=cancel.disabled=!canWrite;adminRefresh.disabled=busy||!studentId||destroyed;management.hidden=!actor?.admin;summary.className='strategy-summary'+(actor?.admin?' strategy-summary-admin':'');refreshButton.hidden=Boolean(actor?.admin);refreshButton.disabled=busy||!studentId||destroyed;more.disabled=busy||!actor?.admin||destroyed;teacher.hidden=!actor?.admin;}
- function resetDraft(){editing=null;draftId=makeId();input.value='';publish.checked=false;dirty=false;}
- function clear(){summaryRows=[];privateRows=[];offset=0;summaryBody.replaceChildren();sharedDetail.replaceChildren();sourceList.replaceChildren();focus.replaceChildren();more.hidden=true;teacher.hidden=true;management.hidden=true;editor.open=evidence.open=false;resetDraft();}
- function failIdentity(){clear();actor=null;controls();}
- async function access(ticket,student){let a;try{a=await verifyAccess();assertCurrent(a.version);}catch(e){if(current(ticket,student))failIdentity();throw e;}if(!current(ticket,student))return null;const next={id:a.user?.id,admin:Boolean(a.isAdmin)};if(!next.id||(actor&&(actor.id!==next.id||actor.admin!==next.admin))||(!next.admin&&student!==next.id)){failIdentity();throw Error('계정 또는 조회 권한이 변경되었습니다. 새로고침해 주세요.');}actor=next;return a;}
- function publicRows(){return summaryRows.filter(r=>r.is_published===true&&typeof r.summary_text==='string'&&r.summary_text.trim());}
- function renderSummary(){summaryBody.replaceChildren();sharedDetail.replaceChildren();sharedDetail.appendChild(el('h3','학생에게 공유된 요약 · 전체'));for(const r of publicRows()){summaryBody.appendChild(el('p',r.summary_text));sharedDetail.appendChild(el('p',r.summary_text));}if(!publicRows().length){summaryBody.appendChild(el('p','아직 공유된 풀이 전략이 없습니다.','muted'));sharedDetail.appendChild(el('p','아직 공유된 풀이 전략이 없습니다.','muted'));}if(actor?.admin)renderFocus();}
- function fillDraft(){if(!actor?.admin||dirty)return;const r=summaryRows.find(r=>r.teacher_id===actor.id);editing=r?{id:r.id,revision:r.revision}:null;input.value=r?.summary_text||'';publish.checked=r?.is_published===true;}
- function renderFocus(){
-  focus.replaceChildren();const dated=privateRows.filter(r=>r.date_precision==='exact'&&dateLabel(r)!=='날짜 미상').slice().sort((a,b)=>String(b.event_date).localeCompare(String(a.event_date))||String(a.id).localeCompare(String(b.id)));const latest=dated.find(r=>r.plan_text),shared=sharedParts(publicRows());
-  const type=latest?.record_type==='lesson_plan'?'수업 계획':latest?.record_type==='exam_note'?'시험행 메모':'이전 전략 자료';
-  focus.appendChild(el('h3','현재 풀이 전략'));const currentText=shared.strategy[0]||sentences(latest?.plan_text)[0];
-  focus.appendChild(el('p',currentText?excerpt(currentText):'날짜가 확인된 운영 계획을 먼저 기록해 주세요.',currentText?'strategy-current':'muted'));
-  focus.appendChild(el('p',shared.strategy.length?'학생 공유 요약 · 발췌':latest?dateLabel(latest)+' · '+type+' · 실행 결과 아님':'성적 조회 기간과 별도','muted strategy-attribution'));
-  focus.appendChild(el('h3','다음 수업에서 확인할 것'));
-  const checks=[...new Set(latest?.next_check_text?sentences(latest.next_check_text):shared.checks)];
-  if(checks.length){const list=el('ul',undefined,'strategy-checks');for(const check of checks.slice(0,3))list.appendChild(el('li',excerpt(check)));focus.appendChild(list);focus.appendChild(el('p','모아 제안 · 확인 예정'+(latest?.next_check_text?' · '+dateLabel(latest)+' '+type:''),'muted strategy-attribution'));}
-  else focus.appendChild(el('p','기록된 다음 확인 항목이 없습니다.','muted'));
- }
- function renderPrivate(){renderFocus();sourceList.replaceChildren();sourceList.appendChild(el('h3','강사 전용 기록 · 계획과 관찰'));const types={exam_note:'시험행 메모',lesson_plan:'수업 계획',historical_context:'이전 전략 자료'};for(const r of privateRows){const article=el('article');article.appendChild(el('h3',r.exam_label||types[r.record_type]||'전략 기록'));article.appendChild(el('p',dateLabel(r)+' · '+(types[r.record_type]||'전략 기록'),'muted'));for(const [key,title]of [['reason_text','교사 가설 · 변경 이유'],['plan_text','운영 계획'],['observation_text','교사 관찰'],['result_text','실제 측정 · 기록된 결과'],['next_check_text','다음 확인']])if(r[key]){article.appendChild(el('strong',title));article.appendChild(el('p',r[key]));}const original=el('details');original.appendChild(el('summary','원문 · '+(r.source_label||'출처 미기록')));original.appendChild(el('p',r.source_excerpt||'원문 없음'));article.appendChild(original);sourceList.appendChild(article);}if(!privateRows.length)sourceList.appendChild(el('p','저장된 강사 전용 근거가 없습니다.'));}
- async function fetchPrivate(ticket,student,append){const a=await access(ticket,student);if(!a||!actor.admin)return;const start=append?offset:0;const result=await client.from(PRIVATE_TABLE).select(PRIVATE_FIELDS).eq('teacher_id',a.user.id).eq('student_id',student).order('event_date',{ascending:false,nullsFirst:false}).order('id',{ascending:false}).range(start,start+100);if(!current(ticket,student))return;await access(ticket,student);if(!current(ticket,student))return;if(result.error||!Array.isArray(result.data))throw Error('강사 전용 근거를 불러오지 못했습니다.');if(result.data.some(r=>r.teacher_id!==actor.id||r.student_id!==student))throw Error('근거 조회 범위가 일치하지 않습니다.');const page=result.data.slice(0,100);privateRows=append?[...privateRows,...page.filter(r=>!privateRows.some(old=>old.id===r.id))]:page;offset=start+page.length;more.hidden=result.data.length<=100;renderPrivate();}
- async function refresh(){if(busy||!studentId||destroyed)return;const ticket=generation,student=studentId;busy=true;controls();message.textContent='풀이 전략을 불러오는 중입니다.';try{const a=await access(ticket,student);if(!a)return;let q=client.from(PUBLIC_TABLE).select('id,teacher_id,student_id,summary_text,is_published,revision').eq('student_id',student);if(actor.admin)q=q.eq('teacher_id',a.user.id);else q=q.eq('is_published',true);const result=await q.order('id',{ascending:true}).range(0,100);if(!current(ticket,student))return;await access(ticket,student);if(!current(ticket,student))return;if(result.error||!Array.isArray(result.data))throw Error('풀이 전략을 불러오지 못했습니다.');if(result.data.some(r=>r.student_id!==student||(actor.admin&&r.teacher_id!==actor.id)||(!actor.admin&&r.is_published!==true)))throw Error('요약 조회 범위가 일치하지 않습니다.');summaryRows=result.data;renderSummary();fillDraft();message.textContent='';if(actor.admin){try{await fetchPrivate(ticket,student,false);}catch(e){if(current(ticket,student)){privateRows=[];sourceList.replaceChildren();renderFocus();more.hidden=true;message.textContent=e.message;}}}}catch(e){if(current(ticket,student)){summaryRows=[];privateRows=[];summaryBody.replaceChildren();sharedDetail.replaceChildren();sourceList.replaceChildren();focus.replaceChildren();more.hidden=true;message.textContent=e.message||'풀이 전략을 불러오지 못했습니다.';}}finally{if(current(ticket,student)){busy=false;controls();}}}
- async function loadPrivate(append){if(busy||!actor?.admin||!studentId||destroyed)return;const ticket=generation,student=studentId;busy=true;controls();try{await fetchPrivate(ticket,student,append);if(current(ticket,student))message.textContent='';}catch(e){if(current(ticket,student))message.textContent=e.message;}finally{if(current(ticket,student)){busy=false;controls();}}}
- async function saveSummary(){if(busy||!studentId||!actor?.admin||destroyed)return;let values;try{values=validateSummary(input.value,publish.checked);}catch(e){message.textContent=e.message;return;}const ticket=generation,student=studentId,edit=editing?{...editing}:null,id=draftId;busy=true;controls();message.textContent='요약을 저장하는 중입니다.';try{const a=await access(ticket,student);if(!a||!actor.admin)return;let q;if(edit)q=client.from(PUBLIC_TABLE).update(values).eq('id',edit.id).eq('teacher_id',a.user.id).eq('student_id',student).eq('revision',edit.revision);else q=client.from(PUBLIC_TABLE).insert({id,teacher_id:a.user.id,student_id:student,...values});const result=await q.select('id,teacher_id,student_id,summary_text,is_published,revision').maybeSingle();if(!current(ticket,student))return;await access(ticket,student);if(!current(ticket,student))return;if(result.error)throw Error('저장 결과를 확인하지 못했습니다. 자동 재시도하지 않았습니다. 새로고침해 저장 여부를 확인해 주세요.');if(!result.data)throw Error('다른 화면에서 변경되었습니다. 새로고침 후 내용을 다시 확인해 주세요.');if(result.data.teacher_id!==actor.id||result.data.student_id!==student)throw Error('저장 범위가 일치하지 않습니다.');summaryRows=[result.data];dirty=false;fillDraft();renderSummary();message.textContent=values.is_published?'학생에게 보이는 풀이 전략을 저장했습니다.':'요약을 비공개로 저장했습니다.';}catch(e){if(current(ticket,student))message.textContent=e.message||'저장하지 못했습니다.';}finally{if(current(ticket,student)){busy=false;controls();}}}
- function selectStudent(id){generation++;studentId=String(id||'');busy=false;clear();message.textContent=studentId?'':'풀이 전략을 볼 학생을 선택해 주세요.';controls();if(studentId)return refresh();return Promise.resolve();}
- function invalidate(){generation++;studentId='';actor=null;busy=false;clear();message.textContent='로그인 상태를 다시 확인해 주세요.';controls();}
- function destroy(){invalidate();destroyed=true;container.replaceChildren();}
- function getPrintableSummary(){return publicRows().map(r=>r.summary_text).join('\n\n');}
- controls();return{selectStudent,refresh,invalidate,destroy,getPrintableSummary,summaryElement:summary};
+const TABLE='teacher_strategy_records',SOURCE_KEY='app:manual-strategy:v1',FORMAT='silmonote.manual-strategy';
+const FIELDS='id,teacher_id,student_id,source_key,source_label,source_excerpt,record_type,date_precision,event_date,plan_text,revision';
+function encodePlan(values){
+ const plan={format:FORMAT,version:1};
+ for(const key of ['order','time','types']){if(typeof values[key]!=='string')throw Error('풀이 순서, 시간, 유형을 모두 입력해 주세요.');const value=values[key].trim();if(!value||value.length>1000)throw Error('풀이 순서, 시간, 유형을 각각 1~1000자로 입력해 주세요.');plan[key]=value;}
+ const encoded=JSON.stringify(plan);if(encoded.length>4000)throw Error('입력 내용이 너무 깁니다. 특수문자나 줄바꿈을 줄여 주세요.');return encoded;
 }
-const api={create,validateSummary,dateLabel};if(typeof module==='object'&&module.exports)module.exports=api;else root.StrategyPanel=api;
+function decodePlan(value){
+ let plan;try{plan=JSON.parse(value);}catch{throw Error('저장된 풀이 전략 형식을 확인할 수 없습니다. 원본을 덮어쓰지 않았습니다.');}
+ if(!plan||Array.isArray(plan)||plan.format!==FORMAT||plan.version!==1||Object.keys(plan).sort().join(',')!=='format,order,time,types,version')throw Error('저장된 풀이 전략 형식을 확인할 수 없습니다. 원본을 덮어쓰지 않았습니다.');
+ encodePlan(plan);return {order:plan.order,time:plan.time,types:plan.types};
+}
+function create({container,client,verifyAccess,assertCurrent=()=>{},document=container.ownerDocument,makeId=()=>root.crypto.randomUUID()}){
+ let studentId='',actor=null,generation=0,busy=false,destroyed=false,loaded=false,dirty=false,row=null,draftId=makeId(),pending=null;
+ function el(tag,text){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;}
+ const heading=el('h2','풀이 전략'),form=el('form');form.className='strategy-input-form';form.setAttribute('data-strategy-private','');
+ const inputs={};for(const [key,name,title,placeholder]of [['order','solving_order','풀이 순서','문제를 풀 순서를 입력하세요'],['time','time_plan','시간','분, 시간대 또는 구간별 시간을 입력하세요'],['types','question_types','유형','문항 번호나 유형을 입력하세요']]){const label=el('label',title),input=el('textarea');input.name=name;input.maxLength=1000;input.required=true;input.placeholder=placeholder;label.appendChild(input);form.appendChild(label);inputs[key]=input;}
+ const save=el('button','저장');save.type='submit';save.className='primary';form.appendChild(save);const message=el('p');message.className='strategy-status';message.setAttribute('role','status');message.setAttribute('aria-live','polite');container.replaceChildren(heading,form,message);container.hidden=true;
+ form.addEventListener('input',()=>{dirty=true;});form.addEventListener('submit',event=>{event.preventDefault();savePlan();});
+ function controls(){const editable=Boolean(actor?.admin&&studentId&&!busy&&!destroyed);for(const input of Object.values(inputs))input.disabled=!editable;save.disabled=!(editable&&loaded);container.hidden=!actor?.admin||destroyed;}
+ function fill(values={}){for(const key of Object.keys(inputs))inputs[key].value=values[key]||'';}
+ function clear(){loaded=false;dirty=false;row=null;pending=null;draftId=makeId();fill();}
+ function current(ticket,student){return !destroyed&&ticket===generation&&student===studentId;}
+ function failIdentity(){clear();actor=null;controls();}
+ async function access(ticket,student){let verified;try{verified=await verifyAccess();assertCurrent(verified.version);}catch(error){if(current(ticket,student))failIdentity();throw error;}if(!current(ticket,student))return null;const next={id:verified.user?.id,admin:verified.isAdmin===true};if(!next.id||!next.admin||(actor&&(actor.id!==next.id||actor.admin!==next.admin))||(student&&student===next.id)){failIdentity();throw Error('계정 또는 조회 권한이 변경되었습니다. 새로고침해 주세요.');}actor=next;return verified;}
+ function validateRow(value,student){if(!value||value.teacher_id!==actor.id||value.student_id!==student||value.source_key!==SOURCE_KEY||value.source_label!=='직접 입력 풀이 전략'||value.source_excerpt!==''||value.record_type!=='lesson_plan'||value.date_precision!=='unknown'||value.event_date!==null||typeof value.id!=='string'||!value.id||!Number.isSafeInteger(value.revision)||value.revision<1)throw Error('풀이 전략 조회 범위 또는 형식이 일치하지 않습니다. 원본을 덮어쓰지 않았습니다.');return decodePlan(value.plan_text);}
+ function draftMatches(value){try{return encodePlan(Object.fromEntries(Object.entries(inputs).map(([key,input])=>[key,input.value])))===value;}catch{return false;}}
+ function sameVersion(a,b){return a===null&&b===null||Boolean(a&&b&&a.id===b.id&&a.revision===b.revision);}
+ async function refresh(){
+  if(busy||destroyed)return;const ticket=generation,student=studentId;busy=true;controls();message.textContent=student?'풀이 전략을 불러오는 중입니다.':'풀이 전략을 입력할 학생을 선택해 주세요.';
+  try{const a=await access(ticket,student);if(!a)return;if(!student){loaded=false;return;}
+   const result=await client.from(TABLE).select(FIELDS).eq('teacher_id',a.user.id).eq('student_id',student).eq('source_key',SOURCE_KEY).maybeSingle();
+   if(!current(ticket,student))return;await access(ticket,student);if(!current(ticket,student))return;
+   if(result.error)throw Error('풀이 전략을 불러오지 못했습니다. 입력 내용은 유지했습니다.');const next=result.data||null,values=next?validateRow(next,student):{};
+   if(dirty&&pending&&next?.plan_text===pending.plan_text&&next.id===pending.id){row=next;pending=null;loaded=true;if(draftMatches(next.plan_text)){dirty=false;fill(values);message.textContent='저장된 풀이 전략을 확인했습니다.';}else message.textContent='이전 저장을 확인했습니다. 입력 중인 변경 내용은 아직 저장되지 않았습니다.';}
+   else if(dirty&&!sameVersion(row,next)){loaded=false;message.textContent='다른 화면에서 변경되었습니다. 입력 내용을 따로 보관한 후 브라우저를 새로고침해 주세요.';}
+   else{if(!dirty){row=next;fill(values);}pending=null;loaded=true;message.textContent='';}
+  }catch(error){if(current(ticket,student)){loaded=false;message.textContent=error.message||'풀이 전략을 불러오지 못했습니다.';}}
+  finally{if(current(ticket,student)){busy=false;controls();}}
+ }
+ async function savePlan(){
+  if(busy||!loaded||!studentId||!actor?.admin||destroyed)return;let plan_text;try{plan_text=encodePlan(Object.fromEntries(Object.entries(inputs).map(([key,input])=>[key,input.value])));}catch(error){message.textContent=error.message;return;}
+  const ticket=generation,student=studentId,edit=row?{id:row.id,revision:row.revision}:null,id=edit?.id||draftId;busy=true;dirty=true;pending={id,plan_text};controls();message.textContent='저장 중입니다.';
+  try{const a=await access(ticket,student);if(!a)return;let query;
+   if(edit)query=client.from(TABLE).update({plan_text}).eq('id',edit.id).eq('teacher_id',a.user.id).eq('student_id',student).eq('source_key',SOURCE_KEY).eq('revision',edit.revision);
+   else query=client.from(TABLE).insert({id,teacher_id:a.user.id,student_id:student,source_key:SOURCE_KEY,source_label:'직접 입력 풀이 전략',source_excerpt:'',record_type:'lesson_plan',date_precision:'unknown',event_date:null,plan_text});
+   const result=await query.select(FIELDS).maybeSingle();if(!current(ticket,student))return;await access(ticket,student);if(!current(ticket,student))return;
+   if(result.error)throw Error('저장 결과를 확인하지 못했습니다. 입력 내용은 유지했습니다. 새로고침으로 저장 여부를 확인해 주세요.');
+   if(!result.data)throw Error('다른 화면에서 변경되었습니다. 입력 내용을 따로 보관한 후 브라우저를 새로고침해 주세요.');
+   const values=validateRow(result.data,student);if(result.data.id!==id||result.data.plan_text!==plan_text||result.data.revision!==(edit?edit.revision+1:1))throw Error('저장 결과가 일치하지 않습니다. 새로고침으로 확인해 주세요.');
+   row=result.data;pending=null;dirty=false;loaded=true;fill(values);message.textContent='저장했습니다.';
+  }catch(error){if(current(ticket,student)){loaded=false;message.textContent=error.message||'저장하지 못했습니다. 입력 내용은 유지했습니다.';}}
+  finally{if(current(ticket,student)){busy=false;controls();}}
+ }
+ function selectStudent(id){generation++;studentId=String(id||'');busy=false;clear();controls();return refresh();}
+ function invalidate(){generation++;studentId='';actor=null;busy=false;clear();message.textContent='로그인 상태를 다시 확인해 주세요.';controls();}
+ function destroy(){invalidate();destroyed=true;container.replaceChildren();container.hidden=true;}
+ controls();return {selectStudent,refresh,invalidate,destroy};
+}
+const api={create,encodePlan,decodePlan};if(typeof module==='object'&&module.exports)module.exports=api;else root.StrategyPanel=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
