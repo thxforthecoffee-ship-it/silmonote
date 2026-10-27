@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const html=fs.readFileSync('history.html','utf8');
 test('strategy is separate from assignments and visible before rate priorities',()=>{
  assert(html.indexOf('id="strategyPanel"')<html.indexOf('id="adminReview"'));
- assert(html.includes('<script src="strategy-panel.js"></script>'));
+ assert(html.includes('<script src="strategy-panel.js?v=20261027-compact"></script>'));
  assert(html.includes('id="teacherAssignments"'));
  assert(html.includes("$('strategyPanel').hidden=false;"));
  assert(html.includes('strategyPanel?.invalidate();strategyStudentId=null;'));

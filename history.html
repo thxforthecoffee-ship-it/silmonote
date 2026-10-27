@@ -10,7 +10,7 @@
 .admin-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.admin-rate{background:#f0f6f5;border-radius:10px;padding:14px}.admin-rate h3{font-size:14px;margin:0}.admin-rate strong{display:block;font-size:25px;color:#164f56}.admin-rate p{margin:4px 0;font-size:12px}.admin-priorities{padding-left:24px}.admin-priorities li{padding:10px 0}.admin-priorities p{margin:4px 0}.admin-fold{margin-top:16px;border:1px solid #dce5e8;border-radius:12px;background:white;padding:16px}.admin-fold>summary{font-weight:700}.admin-fold>.panel{margin-top:14px;border:0;padding:6px}.admin-review-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}@media(max-width:650px){.admin-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 @media print{
- body.teacher-report-print main>h1,body.teacher-report-print main>h1+p,body.teacher-report-print .report-metrics,body.teacher-report-print .admin-review-actions,body.teacher-report-print #adminReview .report-link,body.teacher-report-print .admin-fold>summary,body.teacher-report-print .domain-note-evidence,body.teacher-report-print .domain-teacher-feedback,body.teacher-report-print .domain-edit-controls,body.teacher-report-print .domain-legacy{display:none!important}
+ body.teacher-report-print main>h1,body.teacher-report-print main>h1+p,body.teacher-report-print .report-metrics,body.teacher-report-print .admin-review-actions,body.teacher-report-print #adminReview .report-link,body.teacher-report-print .admin-fold>summary,body.teacher-report-print .admin-priority-details>summary,body.teacher-report-print .domain-note-evidence,body.teacher-report-print .domain-teacher-feedback,body.teacher-report-print .domain-edit-controls,body.teacher-report-print .domain-legacy{display:none!important}
  body.teacher-report-print #content>*:not(.report-hero):not(#adminReview):not(#reviewTrend):not(#reviewDomains):not(#reviewLedger):not(#strategyPanel),body.teacher-report-print #adminPriorities li>span{display:none!important}
  body.teacher-report-print #adminReview,body.teacher-report-print .admin-fold,body.teacher-report-print .admin-fold>.panel{break-inside:auto;page-break-inside:auto}
  body.teacher-report-print .admin-fold{border:0;padding:0;margin:12px 0}
@@ -29,7 +29,23 @@
 }
 #teacherAssignments textarea{display:block;width:100%;min-height:80px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}#teacherAssignments label{margin:12px 0}#teacherAssignments button{margin:6px 8px 6px 0}#teacherAssignments article{border-top:1px solid #dde3ed;padding:12px 0;white-space:pre-wrap}#teacherAssignments strong{overflow-wrap:anywhere}
 #status:empty,#reportPeriod:empty,#reportCoverage:empty,#coverage:empty,#reportError:empty{display:none}
-#strategyPanel textarea{display:block;width:100%;min-height:100px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}#strategyPanel article{padding:12px 0;border-top:1px solid #dde3ed;overflow-wrap:anywhere}#strategyPanel .strategy-summary{white-space:pre-wrap}#strategyPanel button{margin:6px 8px 6px 0}@media print{#strategyPanel [data-strategy-private]{display:none!important}#strategyPanel{break-inside:avoid}}
+#strategyPanel textarea{display:block;width:100%;min-height:140px;font:inherit;padding:10px;border:1px solid #bec9da;border-radius:8px}
+#strategyPanel article{padding:14px 0;border-top:1px solid #dde3ed;overflow-wrap:anywhere}
+#strategyPanel .strategy-summary,#strategyPanel .strategy-details p{white-space:pre-wrap;overflow-wrap:anywhere}
+#strategyPanel .strategy-heading{display:flex;justify-content:space-between;align-items:start;gap:16px;position:relative}
+#strategyPanel .strategy-heading h2{margin:0}#strategyPanel .strategy-management{margin-left:auto;flex-shrink:0}
+#strategyPanel .strategy-management>details>summary{list-style:none;border:1px solid #d8e0eb;border-radius:8px;padding:4px 12px;font-size:14px}
+#strategyPanel .strategy-management>details>summary::-webkit-details-marker{display:none}
+#strategyPanel .strategy-menu-body{position:absolute;right:0;top:42px;width:min(480px,100%);padding:18px;background:#fff;border:1px solid #ccd7e5;border-radius:12px;box-shadow:0 8px 30px #17243b24;z-index:2}
+#strategyPanel .strategy-menu-body h3{margin:0 0 14px;font-size:16px}#strategyPanel .strategy-publish{display:flex;align-items:center;gap:8px;margin-top:12px}#strategyPanel input[type=checkbox]{width:auto}
+#strategyPanel button{margin:6px 8px 6px 0;font-size:14px}#strategyPanel .strategy-teacher-focus h3{font-size:14px;color:#5c6b80;margin:18px 0 6px}
+#strategyPanel .strategy-current{font-weight:650;font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#strategyPanel .strategy-attribution{font-size:12px;margin:6px 0 0}#strategyPanel .strategy-checks{padding-left:22px;margin:6px 0}#strategyPanel .strategy-checks li{padding:3px 0;overflow-wrap:anywhere}
+#strategyPanel .strategy-details{margin-top:20px;padding-top:12px;border-top:1px solid #e5eaf1}#strategyPanel .strategy-details>summary{font-size:14px}#strategyPanel .strategy-status:empty{display:none}
+.admin-priority-details{margin:8px 0;font-size:14px}.admin-priority-details>summary{font-size:14px}
+@media screen{#strategyPanel .strategy-summary-admin{display:none}}
+@media print{#strategyPanel [data-strategy-private]{display:none!important}#strategyPanel{break-inside:avoid}}
+
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
 <nav class="no-print" aria-label="과목 선택"><a href="history.html" aria-current="page">영어 리포트</a> · <a href="korean.html">국어 기록 · 리포트 →</a></nav>
@@ -54,7 +70,7 @@
 
 <section id="recordSection" class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 성적 기록</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
 </div><footer>성적과 학생 원문은 기존 상세보기에서 확인할 수 있습니다.</footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js"></script><script src="report-print.js"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js?v=20261027-compact"></script><script src="report-print.js?v=20261027-compact"></script><script>
 'use strict';
 const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
 const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -103,15 +119,16 @@ function renderAdminReview(scores,subset){
  if(!identity?.isAdmin)return;
  const model=AdminReview.build(EnglishDomains,scores,subset.filter(r=>r.type==='note'),records),host=$('adminRateCards'),list=$('adminPriorities'),recent=$('adminRecent');host.replaceChildren();list.replaceChildren();recent.replaceChildren();
  const windowScores=AdminReview.scoreWindow(scores,{basis:$('reportDateBasis').value,partial:more.score});recent.appendChild(element('h3','최근 3회 · 이전 3회 비교'));
- for(const [label,rows] of [['최근',windowScores.recent],['이전',windowScores.previous]])if(rows.length){const p=element('p',label+' '+rows.length+'회: ');for(const [i,r] of rows.entries()){if(i)p.appendChild(element('span',' / '));p.appendChild(recordLink(r,scoreDisplay(r.real_score)+' · '+(r.real_grade?r.real_grade+'등급':'등급 미기록')));}recent.appendChild(p);}
+ for(const [label,rows] of [['최근',windowScores.recent],['이전',windowScores.previous]])if(rows.length){const p=element('p',label+' '+rows.length+'회: ');for(const [i,r] of rows.entries()){if(i)p.appendChild(element('span',' / '));p.appendChild(element('span',scoreDisplay(r.real_score)+' · '+(r.real_grade?r.real_grade+'등급':'등급 미기록')));}recent.appendChild(p);}
  if(windowScores.delta!==null)recent.appendChild(element('strong','평균 '+(windowScores.delta>0?'+':'')+windowScores.delta.toFixed(1)+'점 · 원점수 비교'));
  if(windowScores.reason)recent.appendChild(element('p',windowScores.reason,'muted'));
- for(const {domain,stats,basis,guessed} of model.priorities){const card=element('div',undefined,'admin-rate');card.appendChild(element('h3',domain.label));card.appendChild(element('strong','오답 '+stats.errorRate.toFixed(1)+'%'));card.appendChild(element('p','오답 '+stats.incorrect+' / 집계 '+stats.total+'문항 · '+basis,'muted'));if(guessed)card.appendChild(element('p','정답 중 찍어서 맞힘 '+guessed+'문항 (표시된 기록만)','muted'));card.appendChild(reviewEvidenceLink(domain.key,'근거 보기'));host.appendChild(card);}
+ for(const {domain,stats,basis,guessed} of model.priorities){const card=element('div',undefined,'admin-rate');card.appendChild(element('h3',domain.label));card.appendChild(element('strong','오답 '+stats.errorRate.toFixed(1)+'%'));card.appendChild(element('p','오답 '+stats.incorrect+' / 집계 '+stats.total+'문항 · '+basis,'muted'));if(guessed)card.appendChild(element('p','정답 중 찍어서 맞힘 '+guessed+'문항 (표시된 기록만)','muted'));host.appendChild(card);}
  if(!model.priorities.length){host.appendChild(element('p','오답 근거가 있는 우선 유형이 없습니다.','muted'));list.appendChild(element('li','먼저 확인할 것: 문항별 정오답과 저장된 강사 피드백을 확인하세요.'));return;}
  const {domain,feedback}=model.priorities[0],item=element('li');item.appendChild(element('strong',domain.label+' · 연습안 1개'));item.appendChild(element('p','모아 제안: '+domain.plan));
- if(feedback.length){item.appendChild(element('p','저장된 강사 피드백 후보와 대조 후 선택','muted'));const source=feedback[feedback.length-1];item.appendChild(element('p',source.feedback.length>240?source.feedback.slice(0,240)+'… (발췌)':source.feedback,'feedback'));item.appendChild(recordLink(source,'강사 피드백 원문 확인'));}
+ const evidence=element('details',undefined,'admin-priority-details');evidence.appendChild(element('summary','자세히 보기'));
+ if(feedback.length){item.appendChild(element('p','저장된 강사 피드백 후보와 대조 후 선택','muted'));const source=feedback[feedback.length-1];evidence.appendChild(element('p',source.feedback.length>240?source.feedback.slice(0,240)+'… (발췌)':source.feedback,'feedback'));evidence.appendChild(recordLink(source,'강사 피드백 원문 확인'));}
  else item.appendChild(element('p','연결된 강사 피드백 없음 · 강사가 확인 후 선택','muted'));
- item.appendChild(reviewEvidenceLink(domain.key,'문항 근거·개선안 보기'));
+ evidence.appendChild(reviewEvidenceLink(domain.key,'문항 근거·개선안 보기'));item.appendChild(evidence);
  const actions=element('div',undefined,'admin-review-actions');for(const [label,action] of [['이번 과제로 선택','select'],['수정','edit'],['보류','defer']]){const button=element('button',label);button.type='button';button.addEventListener('click',()=>{assignmentPanel?.setSuggestion(domain.plan,action);$('teacherAssignments').scrollIntoView({behavior:'smooth',block:'start'});});actions.appendChild(button);}item.appendChild(actions);list.appendChild(item);
 }
 function renderReport(){
