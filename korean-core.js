@@ -15,7 +15,7 @@ function validate(kind,raw){
  if(!TABLES[kind])throw Error('기록 종류를 확인해 주세요.');
  const title=String(raw.exam_title||'').trim();if(!title||title.length>200)throw Error('시험명은 1~200자로 입력해 주세요.');
  const date=raw.test_date||null;if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date))throw Error('시험일을 확인해 주세요.');
- const c={version:1};for(const [key,value]of Object.entries(raw.content||{})){if(Array.isArray(value)){c[key]=value.filter(v=>TAGS.includes(v));continue;}const s=String(value??'').trim();if(s.length>5000)throw Error('각 항목은 5,000자 이내로 입력해 주세요.');c[key]=s;}
+ const c={version:1};for(const [key,value]of Object.entries(raw.content||{})){if(key==='question_reviews'){c[key]=value;continue;}if(Array.isArray(value)){c[key]=value.filter(v=>TAGS.includes(v));continue;}const s=String(value??'').trim();if(s.length>5000)throw Error('각 항목은 5,000자 이내로 입력해 주세요.');c[key]=s;}
  if(kind==='score'){
   const max=number(c.max_score,1);if(max===null)throw Error('만점은 1~10,000 사이의 숫자로 입력해 주세요.');c.max_score=max;
   if(c.score!==''){const value=number(c.score,0,max);if(value===null)throw Error('원점수는 0점부터 만점 사이로 입력해 주세요.');c.score=value;}else c.score=null;
@@ -24,7 +24,10 @@ function validate(kind,raw){
   if(!c.question)throw Error('문항 번호나 식별 정보를 입력해 주세요.');
   if(!AREAS.includes(c.area)||!PRE.includes(c.pre_status))throw Error('기록 영역과 해설 확인 상태를 선택해 주세요.');
  }
- return {exam_title:title,test_date:date,content:c};
+ const exam=typeof KoreanExam!=='undefined'?KoreanExam:(typeof require==='function'?require('./korean-exam-core.js'):null);
+ const content=kind==='score'&&c.exam_analysis_version?exam.validate(c):c;
+ if(new TextEncoder().encode(JSON.stringify(content)).length>60000)throw Error('기록 내용이 너무 깁니다. 문항별 근거는 핵심만 적고 긴 내용은 문항 풀이 기록으로 나눠 주세요.');
+ return {exam_title:title,test_date:date,content};
 }
 function summarize(rows,start='',end=''){
  const selected=rows.filter(r=>!r.deleted_at&&(!start||day(r.created_at)>=start)&&(!end||day(r.created_at)<=end));
@@ -35,3 +38,4 @@ function summarize(rows,start='',end=''){
 }
 const api={AREAS,TAGS,STATUS,HELP,TABLES,PRE,number,score,day,compare,validate,summarize};root.KoreanCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
+

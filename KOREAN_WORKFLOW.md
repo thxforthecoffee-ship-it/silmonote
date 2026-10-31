@@ -36,3 +36,19 @@ The browser regression requires an environment that permits Chromium to create l
 3. Publish the new files plus the small subject-navigation additions to `main.html`, `admin.html` and `history.html`.
 4. Verify the exact GitHub commit and its Pages build, then check the public page and asset responses.
 5. A public URL check verifies publication only. It does not establish a real signed-in student save or a teacher review unless that flow is separately exercised with authorized test accounts.
+
+## October 31, 2026 mock-exam form update
+
+The existing separate Korean exam-analysis editor now includes an explicit current-format selector, chosen elective, provider, school year/status, optional reported standard score and percentile, timing/reflection, and optional per-question review cards. `korean-exam-core.js` validates this versioned JSON content. No new table, permission, credential or storage bucket is required.
+
+- Current 2022–2027 CSAT-style mode: 45 questions, 80 minutes, 100 points; common questions 1–34 and selected subject questions 35–45. Students choose 화법과 작문 or 언어와 매체. Manual area classification can remain 미분류; the program never infers literature/reading categories from question numbers.
+- For 2028+, lower grades and other exam formats, choose the explicit alternative mode and verify the actual paper. No current-format question mapping is applied.
+- Grade, standard score and percentile are copied from the student's score report if available. They are never calculated from raw score. Question reviews are a selected subset and are never used to infer whole-exam or area accuracy.
+- Existing legacy JSON keys are retained when editing, and old records remain readable. A feedback body marked 모아 작성 is displayed as AI learning feedback, separate from the existing human confirmation status. This marker does not set teacher_status to confirmed.
+
+Official structure references verified October 31, 2026:
+- KICE 2027 implementation plan (official education-office republication): https://www.goesn.kr/dext5editordata/2026/04/20260402_100724371_33200.pdf
+- EBS official 2027 September mock analysis: https://www.ebsi.co.kr/ebs/ent/enta/retrieveEntAnlyStrdDataVw.ebs?bbsCd=B114&cookieGradeVal=high3&datNo=127095
+- MOE 2028 reform: https://www.moe.go.kr/boardCnts/viewRenew.do?boardID=294&boardSeq=102385&lev=0
+
+Additional test: `node tests/korean-exam-core.test.cjs`. Updated synthetic browser fixture exercises saving a selected-question review. A blocked Chromium launch must be disclosed, not counted as a passed browser test. No real student records are used by the fixtures.

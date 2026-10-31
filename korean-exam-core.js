@@ -1,0 +1,12 @@
+/* Current-format Korean exam reflection. No answer, grade or ability inference. */
+(function(root){'use strict';
+const CURRENT='2022~2027학년도 수능형 (공통+선택)',OTHER='2028학년도 이후·고1/2·기타 (시험지 직접 확인)';
+const ELECTIVES=['','화법과 작문','언어와 매체','선택과목 없음·기타'];
+const AREAS=['미분류','독서','문학','화법','작문','언어·문법','매체','복합·기타'];
+const RESULTS=['오답','맞았지만 불확실','미응답','확인 중'];
+function clean(value,max=1000){const s=String(value??'').trim();if(s.length>max)throw Error('문항별 기록은 각 항목 1,000자 이내로 입력해 주세요.');return s;}
+function reviews(raw,format){if(!Array.isArray(raw)||raw.length>45)throw Error('문항 기록은 최대 45개까지 입력해 주세요.');const seen=new Set();return raw.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim()&&!['미분류','오답','미확인'].includes(String(v)))).map(r=>{const number=clean(r.number,10);if(!/^\d+$/.test(number)||+number<1||+number>(format===CURRENT?45:200))throw Error('문항 번호를 확인해 주세요. 수능형은 1~45번입니다.');if(seen.has(+number))throw Error('같은 문항 번호가 중복되었습니다.');seen.add(+number);if(!AREAS.includes(r.area)||!RESULTS.includes(r.result))throw Error('문항 영역과 풀이 결과를 확인해 주세요.');const out={number:String(+number),area:r.area,result:r.result};for(const k of ['chosen','correct']){out[k]=clean(r[k],10);if(out[k]&&!/^[1-5]$/.test(out[k]))throw Error('선택한 답과 정답은 1~5 또는 빈칸으로 입력해 주세요.');}if(r.result==='미응답'&&out.chosen)throw Error('미응답 문항은 당시 고른 답을 비워 주세요.');for(const k of ['reason','evidence','next_action'])out[k]=clean(r[k]);return out;});}
+function formDefaults(content={},existing=false){return {...content,exam_mode:content.exam_mode||(existing?OTHER:CURRENT),elective:content.elective||''};}
+function validate(content){if(!content.exam_analysis_version)return content;const c={...content};if(![CURRENT,OTHER].includes(c.exam_mode))throw Error('시험 체제를 선택해 주세요.');if(!ELECTIVES.includes(c.elective))throw Error('선택과목을 확인해 주세요.');if(c.exam_mode===CURRENT&&!['화법과 작문','언어와 매체'].includes(c.elective))throw Error('수능형 선택과목을 선택해 주세요.');if(c.exam_mode===CURRENT&&Number(c.max_score)!==100)throw Error('현재 수능형 국어 만점은 100점입니다.');for(const [k,max] of [['standard_score',200],['percentile',100],['actual_minutes',300]]){const v=c[k];if(v!==''&&v!=null&&(!/^\d+(\.\d+)?$/.test(String(v))||+v>max))throw Error('성적표 점수·백분위와 풀이 시간을 확인해 주세요.');}c.question_reviews=reviews(c.question_reviews||[],c.exam_mode);c.exam_analysis_version=2;return c;}
+const api={CURRENT,OTHER,ELECTIVES,AREAS,RESULTS,reviews,validate,formDefaults};root.KoreanExam=api;if(typeof module==='object'&&module.exports)module.exports=api;
+})(typeof window==='undefined'?globalThis:window);
