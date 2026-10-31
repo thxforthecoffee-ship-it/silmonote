@@ -22,10 +22,14 @@ test('manual storage uses a distinct source key and never renders imported sourc
  for(const name of ['solving_order','time_plan','question_types'])assert(panel.includes(name));
  assert(!/el\('(?:a|details|summary)'/.test(panel));
 });
-test('all report source anchors are removed without removing primary navigation',()=>{
+test('report source anchors stay removed while the admin record index links to originals',()=>{
  assert(!html.includes('function recordLink('));assert(!html.includes('function reviewEvidenceLink('));
- assert(!/\.href\s*=\s*\(r\.type|view\.html\?id=|score_view\.html\?id=/.test(html));
- assert(!/element\('a'/.test(html));
+ const outsideIndex=html.slice(0,html.indexOf('function render(){'))+html.slice(html.indexOf('async function fetchPage('));
+ assert(!/element\('a'/.test(outsideIndex));
+ const index=html.slice(html.indexOf('if(identity?.isAdmin){',html.indexOf('function render(){')),html.indexOf('async function fetchPage('));
+ assert(index.includes("link.href=(r.type==='note'?'view.html':'score_view.html')"));
+ assert(index.includes('encodeURIComponent(r.id)'));
+ assert(index.includes("link.rel='noopener noreferrer'"));
  for(const link of ['href="main.html"','href="history.html"','href="korean.html"'])assert(html.includes(link));
  assert(html.includes("$('homeLink').href='admin.html'"));
 });
@@ -36,3 +40,4 @@ test('readonly display uses only the confirmed row, never draft inputs or genera
  assert(!render.includes('모아 제안'));
  for(const label of ['strategy-timeline','strategy-deferred','strategy-legacy-view'])assert(render.includes(label));
 });
+

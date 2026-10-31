@@ -38,6 +38,7 @@
 @media(max-width:650px){#strategyPanel .strategy-legacy-fields{grid-template-columns:1fr}#strategyPanel .strategy-timeline li{grid-template-columns:1fr;gap:3px}#strategyPanel .strategy-editor-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}#strategyPanel .strategy-editor-row label{grid-column:1}#strategyPanel .strategy-editor-row button{grid-column:2;grid-row:1/3}#strategyPanel .strategy-header{align-items:start}}
 @media print{#strategyPanel{display:none!important}}
 
+.record-index{padding:10px 0}.record-index h3{margin:0;font-size:16px}.record-index a{display:block;padding:6px 0;overflow-wrap:anywhere}
 </style></head><body><main>
 <header><a id="homeLink" href="main.html">← 실모기록 홈</a><button id="refresh" type="button">새로고침</button></header>
 <nav class="no-print" aria-label="과목 선택"><a href="history.html" aria-current="page">영어 리포트</a> · <a href="korean.html">국어 기록 · 리포트 →</a></nav>
@@ -62,7 +63,7 @@
 
 <section id="recordSection" class="panel" aria-labelledby="recordTitle"><h2 id="recordTitle">전체 기록과 피드백</h2><div class="filters"><label>시험명 / 문항 검색<input id="search" type="search" placeholder="불러온 기록에서 검색"></label><label>기록 종류<select id="type"><option value="all">전체 종류</option><option value="score">모의고사 성적 기록</option><option value="note">심화 오답노트</option></select></label><label>피드백<select id="state"><option value="all">전체 상태</option><option value="done">작성됨</option><option value="pending">미작성</option></select></label></div><p id="filterCount" class="muted"></p><div id="records"></div><button id="more" class="primary" type="button" hidden>이전 기록 더 불러오기</button></section>
 </div><footer>기록 작성·수정은 홈 또는 관리자 모드에서 진행할 수 있습니다.</footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js"></script><script src="strategy-panel.js?v=20261027-current"></script><script src="report-print.js?v=20261027-compact"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script><script src="app-access.js"></script><script src="english-domain-core.js?v=20261022-unassessed"></script><script src="admin-review-core.js?v=20261022-minute"></script><script src="assignment-panel.js?v=20261031-record-layout"></script><script src="strategy-panel.js?v=20261027-current"></script><script src="report-print.js?v=20261027-compact"></script><script>
 'use strict';
 const HISTORY_URL = "https://eseybtzpccvlddpsgwgb.supabase.co";
 const HISTORY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -103,7 +104,7 @@ function setupAdminReview(){
  $('adminReview').hidden=false;$('teacherAssignments').hidden=false;
  if(!assignmentPanel)assignmentPanel=AssignmentPanel.create({container:$('teacherAssignments'),client,assertCurrent:AppAccess.assertCurrent,verifyAccess:async()=>{const access=await AppAccess.requireAccess(client,true);if(access.user.id!==identity.user.id)throw new Error('계정이 변경되었습니다. 새로고침해 주세요.');AppAccess.assertCurrent(access.version);return access;}});$('reportTitle').textContent='강사 검토 리포트';$('printReport').textContent='리포트 인쇄 / PDF 저장';$('printReport').title='브라우저 인쇄 창에서 PDF로 저장을 선택할 수 있습니다.';
  for(const [heading,id,label] of [['trendTitle','reviewTrend','점수 흐름 · 월별 기록'],['scoreTitle','reviewLedger','성적 기록표'],['domainTitle','reviewDomains','유형별 상세 근거 · 모아 제안'],['planTitle','reviewFeedback','강사 피드백 · 학생 목표'],['summaryTitle','reviewLoaded','불러온 기록 수'],['recordTitle','reviewRecords','전체 기록 · 피드백 검색']]){
-  const section=$(heading).closest('section');if($(id))continue;const details=element('details',undefined,'admin-fold');details.id=id;details.appendChild(element('summary',label));section.parentNode.insertBefore(details,section);details.appendChild(section);
+  const section=$(heading).closest('section');if($(id))continue;const details=element('details',undefined,'admin-fold');details.id=id;details.appendChild(element('summary',label));const anchor=id==='reviewRecords'?$('adminReview'):section;anchor.parentNode.insertBefore(details,anchor);details.appendChild(section);
  }
 }
 function renderAdminReview(scores,subset){
@@ -186,7 +187,15 @@ function render(){
  const query=$('search').value.trim().toLocaleLowerCase(), type=$('type').value,state=$('state').value;
  const filtered=records.filter(r=>(type==='all'||r.type===type)&&(state==='all'||(state==='done')===Boolean(r.feedback))&&((text(r.exam_title)+' '+text(r.question_info)).toLocaleLowerCase().includes(query))).sort(compare);
  $('filterCount').textContent=`불러온 ${records.length}건 중 ${filtered.length}건 표시 · 최신 제출순`;
- $('records').replaceChildren();for(const r of filtered){const item=element('article',undefined,'record');item.appendChild(element('span',r.type==='note'?'심화 오답노트':r.record_kind==='score_only'?'점수 기록':'모의고사 분석지','tag'));const heading=element('h3',(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));item.appendChild(heading);item.appendChild(element('p','제출일 '+dateLabel(r.created_at)+(r.type==='note'&&r.test_date?' · 시험일 '+r.test_date:r.type==='score'?' · 시험일 '+(examDateKey(r.exam_date)||'미상')+(r.exam_date_precision==='month'?' (임의 날짜)':''):''),'muted'));item.appendChild(element('span',r.feedback?'피드백 작성됨':'피드백 미작성',r.feedback?'tag done':'tag'));if(r.feedback){const details=element('details');details.appendChild(element('summary','선생님 피드백 펼치기'));details.appendChild(element('div',r.feedback,'feedback'));item.appendChild(details);} $('records').appendChild(item);}if(!filtered.length)$('records').appendChild(element('p',records.length?'조건에 맞는 기록이 없습니다.':'아직 제출된 기록이 없습니다.','empty'));controls();
+ $('records').replaceChildren();for(const r of filtered){
+  if(identity?.isAdmin){
+   const item=element('article',undefined,'record record-index'),heading=element('h3');
+   const kind=r.type==='note'?'오답노트':r.record_kind==='score_only'?'성적':'분석지';
+   const link=element('a','['+kind+'] '+(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));
+   link.href=(r.type==='note'?'view.html':'score_view.html')+'?id='+encodeURIComponent(r.id);link.target='_blank';link.rel='noopener noreferrer';link.title='학생 작성 원문과 피드백 보기 (새 탭)';
+   heading.appendChild(link);item.appendChild(heading);$('records').appendChild(item);continue;
+  }
+  const item=element('article',undefined,'record');item.appendChild(element('span',r.type==='note'?'심화 오답노트':r.record_kind==='score_only'?'점수 기록':'모의고사 분석지','tag'));const heading=element('h3',(r.exam_title||'제목 없음')+(r.type==='note'&&r.question_info?' · '+r.question_info:''));item.appendChild(heading);item.appendChild(element('p','제출일 '+dateLabel(r.created_at)+(r.type==='note'&&r.test_date?' · 시험일 '+r.test_date:r.type==='score'?' · 시험일 '+(examDateKey(r.exam_date)||'미상')+(r.exam_date_precision==='month'?' (임의 날짜)':''):''),'muted'));item.appendChild(element('span',r.feedback?'피드백 작성됨':'피드백 미작성',r.feedback?'tag done':'tag'));if(r.feedback){const details=element('details');details.appendChild(element('summary','선생님 피드백 펼치기'));details.appendChild(element('div',r.feedback,'feedback'));item.appendChild(details);} $('records').appendChild(item);}if(!filtered.length)$('records').appendChild(element('p',records.length?'조건에 맞는 기록이 없습니다.':'아직 제출된 기록이 없습니다.','empty'));controls();
 }
 async function fetchPage(type,owner,cursor){
  const table=type==='note'?'notes':'score_reports';
@@ -223,6 +232,7 @@ async function students(access){
 async function start(){try{if(!window.supabase||!window.AppAccess)throw new Error('필수 파일을 불러오지 못했습니다. 인터넷 연결과 app-access.js 파일을 확인해 주세요.');client=window.supabase.createClient(HISTORY_URL,HISTORY_ANON_KEY);AppAccess.watch(client);client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(identity&&session?.user?.id&&session.user.id!==identity.user.id)){assignmentPanel?.invalidate();assignmentStudentId=null;strategyPanel?.invalidate();strategyStudentId=null;}});identity=await AppAccess.requireAccess(client);setupAdminReview();selectedId=identity.user.id;setupStrategyPanel();if(identity.isAdmin){$('homeLink').href='admin.html';$('homeLink').textContent='← 관리자 모드';try{await students(identity);const requested=new URLSearchParams(location.search).get('student');if(requested){if([...$('student').options].some(option=>option.value===requested)){selectedId=requested;$('student').value=requested;}else{$('studentStatus').textContent='해당 학생이 조회 가능한 승인 계정 목록에 없습니다. 다른 학생을 선택해 주세요.';}}}catch(error){const select=$('student');while(select.options.length>1)select.remove(1);$('studentStatus').textContent=error.message;}}await load(true);}catch(error){$('status').className='error';$('status').textContent=error.message;}}
 $('refresh').addEventListener('click',()=>identity?load(true):location.reload());$('more').addEventListener('click',()=>load());$('reviewMore').addEventListener('click',()=>load());$('student').addEventListener('change',()=>{selectedId=$('student').value;load(true);});const reportPrint=ReportPrint.create({document,window,isAdmin:()=>Boolean(identity?.isAdmin)});$('printReport').addEventListener('click',()=>{try{reportPrint.print();}catch(error){$('status').textContent='인쇄 창을 열지 못했습니다. 브라우저의 인쇄 메뉴를 사용해 주세요.';}});$('resetPeriod').addEventListener('click',()=>{$('reportStart').value='';$('reportEnd').value='';render();});$('reportDateBasis').addEventListener('input',()=>{reportDateBasisChosen=true;render();});for(const id of ['reportStart','reportEnd'])$(id).addEventListener('input',render);for(const id of ['search','type','state'])$(id).addEventListener('input',render);start();
 </script></body></html>
+
 
 
 
