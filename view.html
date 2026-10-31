@@ -67,6 +67,7 @@
       .paper-page { box-shadow: none; border: 1px solid #000; margin-bottom: 0; page-break-after: always; }
     }
   </style>
+<link rel="stylesheet" href="photo-notes.css?v=20261031">
 </head>
 <body>
 
@@ -87,6 +88,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app-access.js"></script>
+<script src="photo-notes.js?v=20261031"></script>
   <script>
     const url = "https://eseybtzpccvlddpsgwgb.supabase.co";
     const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZXlidHpwY2N2bGRkcHNnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1ODgxODgsImV4cCI6MjEwMDE2NDE4OH0.Is4V1cqZgt98NVH47CzhOwPliYWuI68SGm-KkDe5FLY";
@@ -123,7 +125,9 @@
       finally { mutationBusy = false; button.disabled = false; }
     }
 
+    let notePhotos = null;
     async function loadNoteDetail() {
+      notePhotos?.destroy();
       const container = document.getElementById('reportContainer');
       try {
       if (!noteId) throw AppAccess.unavailable();
@@ -352,6 +356,9 @@
           ${feedbackHtml}
         </div>
       `;
+      const photoHost=document.createElement('section');container.appendChild(photoHost);
+      notePhotos=NotePhotos.create({container:photoHost,client:supabaseClient,kind:'english',ownerId:loaded.data.user_id,parentId:noteId,verifyAccess:()=>AppAccess.requireAccess(supabaseClient),assertCurrent:AppAccess.assertCurrent});
+      await notePhotos.load();
       recordReady = true;
       } catch (error) {
         recordReady = false;
@@ -380,3 +387,4 @@
   </script>
 </body>
 </html>
+

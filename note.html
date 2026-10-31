@@ -44,6 +44,7 @@
     .btn-submit { background: #28a745; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; }
     .btn-submit:hover { background: #218838; }
   </style>
+<link rel="stylesheet" href="photo-notes.css?v=20261031">
 </head>
 <body>
 
@@ -55,6 +56,7 @@
   <div class="container">
     <p id="editorStatus" role="status">접근 권한을 확인하는 중입니다...</p>
     <form inert id="deepNoteForm" onsubmit="saveDeepNote(event)">
+      <section id="notePhotoEditor"></section>
       
       <!-- 상단 공통 정보 -->
       <div class="card">
@@ -274,6 +276,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app-access.js"></script>
+<script src="photo-notes.js?v=20261031"></script>
 
 <script>
   function switchTab(pageNum) {
@@ -292,11 +295,13 @@
   const supabaseClient = window.supabase.createClient(url, key);
   AppAccess.watch(supabaseClient);
 
+  let notePhotos = null;
   let editorReady = false;
   let saving = false;
   async function saveDeepNote(e) {
     e.preventDefault();
     if (!editorReady || saving) return;
+    if (notePhotos?.isBusy()) { alert("사진 처리가 끝난 뒤 저장해 주세요."); return; }
     saving = true;
     const button = document.querySelector('.btn-submit');
     button.disabled = true;
@@ -371,6 +376,9 @@
     if (result.error) {
       alert('저장 중 오류가 발생했습니다: ' + result.error.message);
     } else {
+      const savedId = noteId || result.data.id;
+      history.replaceState({}, '', 'note.html?id=' + encodeURIComponent(savedId));
+      await notePhotos?.flush(savedId);
       alert('🎉 4페이지 심화 오답노트가 성공적으로 저장되었습니다!');
       window.location.href = "main.html";
     }
@@ -381,11 +389,14 @@
 
   async function loadNoteData() {
     try {
-    await AppAccess.requireAccess(supabaseClient);
+    const access = await AppAccess.requireAccess(supabaseClient);
     const urlParams = new URLSearchParams(window.location.search);
     const noteId = urlParams.get('id');
     let data = null;
     if (noteId) ({ data } = await AppAccess.loadActive(supabaseClient, 'notes', noteId, true));
+    notePhotos?.destroy();
+    notePhotos = NotePhotos.create({container:document.getElementById('notePhotoEditor'),client:supabaseClient,kind:'english',ownerId:access.user.id,parentId:noteId,editable:true,verifyAccess:()=>AppAccess.requireAccess(supabaseClient),assertCurrent:AppAccess.assertCurrent});
+    await notePhotos.load();
     if (!noteId) { editorReady = true; document.getElementById('deepNoteForm').inert = false; document.getElementById('editorStatus').textContent = ''; return; }
 
     if (data.test_date) document.getElementById('testDate').value = data.test_date;
@@ -462,7 +473,9 @@
 
   }
 
+  window.addEventListener('beforeunload', e => { if(notePhotos?.hasPending() || notePhotos?.isBusy()) { e.preventDefault(); e.returnValue=''; } });
   window.addEventListener('DOMContentLoaded', loadNoteData);
 </script>
 </body>
 </html>
+

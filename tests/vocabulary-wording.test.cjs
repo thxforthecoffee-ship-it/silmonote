@@ -89,7 +89,7 @@ test('note viewer preserves original vocabulary and teacher text in both viewer 
   const html = read('view.html');
   const access = new Function('window', read('app-access.js') + ';return window.AppAccess;')({});
   const render = new Function('note', 'AppAccess', 'IS_ADMIN', 'container',
-    html.slice(html.indexOf('      let data = { ...note };'), html.indexOf('      recordReady = true;')));
+    html.slice(html.indexOf('      let data = { ...note };'), html.indexOf('      const photoHost=')));
   const note = {p2_words: '어휘 원문 <word>', teacher_comment: '어휘를 먼저 확인하세요.'};
   const before = JSON.stringify(note);
   for (const admin of [false, true]) {
@@ -125,3 +125,4 @@ test('note labels change but legacy checkbox values still restore and save uncha
     for (const match of source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
   }
 });
+
