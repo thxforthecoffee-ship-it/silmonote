@@ -328,6 +328,12 @@
         justify-content: center;
       }
     }
+    .extra-analysis { margin:24px 0; border:1px solid #dce3e8; border-radius:10px; padding:16px; }
+    .extra-analysis > summary { cursor:pointer; font-weight:700; color:#456; }
+    .extra-analysis > p, .compact-help { color:#5b6570; line-height:1.6; }
+    .extra-analysis .analysis-table { min-width:580px; }
+    .extra-analysis { overflow-x:auto; }
+    .page-header a { font-size:14px; }
   </style>
 </head>
 
@@ -354,56 +360,59 @@
 
 <div class="card">
 
-  <div class="page-header">
-
-    <div class="page-title">
-      실전 모의고사 영어 분석지 [채점 후 작성]
+  <div class="page-header"><div class="page-title">모의고사 영어 분석노트</div><a href="history.html#scoreTable">누적 점수표 보기 →</a></div><p class="compact-help">시험명과 점수만 필수예요. 한 줄 메모는 선택이고, 자세한 문항 분석은 <a href="note.html">오답노트</a>에 남겨 주세요.</p><div class="grid-2" id="minimalExamFields"><div>
+      <label>시험명</label>
+      <input type="text" id="examTitle" placeholder="예: 3월 1회차 실전모의" required>
     </div>
 
     <div>
-      <label
-        class="inline-checkboxes"
-        style="background:transparent; border:none;"
-      >
-        <input type="checkbox" id="checkTeacher">
-        검토 확인 ❑
-      </label>
+
+      <label>실제 원점수 / 등급</label>
+
+      <div style="display:flex; gap:5px; align-items:center;">
+
+        <input type="number" min="0" max="100" step="1" id="realScore" placeholder="원점수" required>
+
+        /
+
+        <input type="text" id="realGrade" placeholder="영어 등급 자동 계산"
+          readonly>
+
+      </div>
+
     </div>
 
-  </div>
+
+    </div><div class="grid-2"><div>
+
+      <label>한 줄 총평 (선택)</label>
+
+      <input type="text" id="oneLineReview" placeholder="이번 시험 전체 평가 한 줄 요약">
+
+    </div>
 
 
-  <!-- 기본 정보 -->
+    <div>
+
+      <label>다음 목표 (선택)</label>
+
+      <input type="text" id="nextGoal" placeholder="다음 회차 목표 작성">
+
+    </div>
+
+
+    </div><details id="extraAnalysis" class="extra-analysis"><summary>추가 기록 · 이전 상세 내용 (선택)</summary><p>필요할 때만 펼쳐 작성하세요. 기존에 작성한 내용은 그대로 보관합니다. 문항별 오답 이유와 풀이는 오답노트에서 자세히 기록하세요.</p><!-- 기본 정보 -->
 
   <div class="grid-3">
 
     <div>
-      <label>시험명</label>
-      <input
-        type="text"
-        id="examTitle"
-        placeholder="예: 3월 1회차 실전모의"
-        required
-      >
-    </div>
-
-    <div>
       <label>이름</label>
-      <input
-        type="text"
-        id="userName"
-        placeholder="학생 이름"
-        required
-      >
+      <input type="text" id="userName" placeholder="학생 이름">
     </div>
 
     <div>
       <label>Class 명</label>
-      <input
-        type="text"
-        id="className"
-        placeholder="반 이름"
-      >
+      <input type="text" id="className" placeholder="반 이름">
     </div>
 
   </div>
@@ -417,46 +426,11 @@
 
       <div style="display:flex; gap:5px; align-items:center;">
 
-        <input
-          type="text"
-          id="targetGrade"
-          placeholder="등급"
-        >
+        <input type="text" id="targetGrade" placeholder="등급">
 
         /
 
-        <input
-          type="text"
-          id="targetScore"
-          placeholder="점수"
-        >
-
-      </div>
-
-    </div>
-
-
-    <div>
-
-      <label>실제 원점수 / 등급</label>
-
-      <div style="display:flex; gap:5px; align-items:center;">
-
-        <input
-          type="number" min="0" max="100" step="1"
-          id="realScore"
-          placeholder="원점수"
-          required
-        >
-
-        /
-
-        <input
-          type="text"
-          id="realGrade"
-          placeholder="영어 등급 자동 계산"
-          readonly
-        >
+        <input type="text" id="targetScore" placeholder="점수">
 
       </div>
 
@@ -467,11 +441,11 @@
 
       <label>체감 난이도</label>
 
-      <select id="perceivedDifficulty">
+      <select id="perceivedDifficulty"><option value="" selected>미입력</option>
 
         <option>매우 어려움</option>
         <option>어려움</option>
-        <option selected>보통</option>
+        <option>보통</option>
         <option>쉬움</option>
 
       </select>
@@ -484,24 +458,11 @@
   <!-- 1. 총평 -->
 
   <div class="section-title">
-    1. 총평 & 시간 운영 핵심만 빠르게 체크
+    1. 총평 &amp; 시간 운영 핵심만 빠르게 체크
   </div>
 
 
   <div class="grid-2">
-
-    <div>
-
-      <label>한 줄 총평</label>
-
-      <input
-        type="text"
-        id="oneLineReview"
-        placeholder="이번 시험 전체 평가 한 줄 요약"
-      >
-
-    </div>
-
 
     <div>
 
@@ -510,29 +471,17 @@
       <div class="inline-checkboxes">
 
         <label>
-          <input
-            type="radio"
-            name="listeningParallel"
-            value="안정적"
-          >
+          <input type="radio" name="listeningParallel" value="안정적">
           안정적
         </label>
 
         <label>
-          <input
-            type="radio"
-            name="listeningParallel"
-            value="흔들림"
-          >
+          <input type="radio" name="listeningParallel" value="흔들림">
           흔들림
         </label>
 
         <label>
-          <input
-            type="radio"
-            name="listeningParallel"
-            value="거의 못함"
-          >
+          <input type="radio" name="listeningParallel" value="거의 못함">
           거의 못함
         </label>
 
@@ -549,11 +498,7 @@
 
       <label>어려웠던 문항</label>
 
-      <input
-        type="text"
-        id="hardQuestions"
-        placeholder="예: 33, 34, 38"
-      >
+      <input type="text" id="hardQuestions" placeholder="예: 33, 34, 38">
 
     </div>
 
@@ -565,29 +510,17 @@
       <div class="inline-checkboxes">
 
         <label>
-          <input
-            type="checkbox"
-            name="parallelTarget"
-            value="18-20"
-          >
+          <input type="checkbox" name="parallelTarget" value="18-20">
           18-20
         </label>
 
         <label>
-          <input
-            type="checkbox"
-            name="parallelTarget"
-            value="25-28"
-          >
+          <input type="checkbox" name="parallelTarget" value="25-28">
           25-28
         </label>
 
         <label>
-          <input
-            type="checkbox"
-            name="parallelTarget"
-            value="43-45"
-          >
+          <input type="checkbox" name="parallelTarget" value="43-45">
           43-45
         </label>
 
@@ -602,39 +535,17 @@
 
     <div>
 
-      <label>다음 목표</label>
-
-      <input
-        type="text"
-        id="nextGoal"
-        placeholder="다음 회차 목표 작성"
-      >
-
-    </div>
-
-
-    <div>
-
       <label>마킹 실수</label>
 
       <div class="inline-checkboxes">
 
         <label>
-          <input
-            type="radio"
-            name="markingError"
-            value="없음"
-            checked
-          >
+          <input type="radio" name="markingError" value="없음">
           없음
         </label>
 
         <label>
-          <input
-            type="radio"
-            name="markingError"
-            value="있음"
-          >
+          <input type="radio" name="markingError" value="있음">
           있음
         </label>
 
@@ -679,19 +590,11 @@
         <td>1-17</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_listening_nums"
-            placeholder="예: 3, 11"
-          >
+          <input type="text" id="loss_listening_nums" placeholder="예: 3, 11">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_listening_reason"
-            placeholder="틀린 이유"
-          >
+          <input type="text" id="loss_listening_reason" placeholder="틀린 이유">
         </td>
 
       </tr>
@@ -703,17 +606,11 @@
         <td>22-24</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_main_nums"
-          >
+          <input type="text" id="loss_main_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_main_reason"
-          >
+          <input type="text" id="loss_main_reason">
         </td>
 
       </tr>
@@ -725,17 +622,11 @@
         <td>21, 31-34, 40</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_infer_nums"
-          >
+          <input type="text" id="loss_infer_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_infer_reason"
-          >
+          <input type="text" id="loss_infer_reason">
         </td>
 
       </tr>
@@ -747,17 +638,11 @@
         <td>35-39</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_flow_nums"
-          >
+          <input type="text" id="loss_flow_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_flow_reason"
-          >
+          <input type="text" id="loss_flow_reason">
         </td>
 
       </tr>
@@ -771,17 +656,11 @@
         <td>41-42</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_long_nums"
-          >
+          <input type="text" id="loss_long_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_long_reason"
-          >
+          <input type="text" id="loss_long_reason">
         </td>
 
       </tr>
@@ -795,17 +674,11 @@
         <td>29-30</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_grammar_nums"
-          >
+          <input type="text" id="loss_grammar_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_grammar_reason"
-          >
+          <input type="text" id="loss_grammar_reason">
         </td>
 
       </tr>
@@ -817,17 +690,11 @@
         <td>18-20, 25-28, 43-45</td>
 
         <td>
-          <input
-            type="text"
-            id="loss_easy_nums"
-          >
+          <input type="text" id="loss_easy_nums">
         </td>
 
         <td>
-          <input
-            type="text"
-            id="loss_easy_reason"
-          >
+          <input type="text" id="loss_easy_reason">
         </td>
 
       </tr>
@@ -887,11 +754,7 @@
   </table>
 
 
-  <button
-    type="button"
-    class="add-row-btn"
-    onclick="addTimeRow()"
-  >
+  <button type="button" class="add-row-btn" onclick="addTimeRow()">
     ＋ 풀이 구간 추가
   </button>
 
@@ -913,33 +776,19 @@
 
   <!-- Teacher's Comment -->
 
-  <div
-    class="section-title"
-    style="
+  <div class="section-title" style="
       background:#fff0f6;
       border-color:#d63384;
       color:#d63384;
-    "
-  >
+    ">
     TEACHER'S COMMENT
   </div>
 
 
-  <textarea
-    id="teacherComment"
-    rows="3"
-    placeholder="선생님이 진단 후 작성해 주시는 총평 영역입니다."
-    readonly
-    style="background:#f8f9fa; cursor:not-allowed;"
-  ></textarea>
+  <textarea id="teacherComment" rows="3" placeholder="선생님이 진단 후 작성해 주시는 총평 영역입니다." readonly style="background:#f8f9fa; cursor:not-allowed;"></textarea>
 
 
-  <button
-    type="submit"
-    class="btn-submit"
-  >
-    📊 모의고사 실전 분석지 제출하기
-  </button>
+  </details><button type="submit" class="btn-submit">모의고사 기록 저장</button>
 
 </div>
 
@@ -1268,15 +1117,22 @@
     }
   }
   let originalLossData = {};
+  let advancedDirty = false;
+  document.getElementById('extraAnalysis').addEventListener('input', () => { advancedDirty = true; });
+  document.getElementById('extraAnalysis').addEventListener('click', event => { if (event.target.closest('button')) advancedDirty = true; });
   let editorReady = false;
   let saving = false;
   async function loadScoreData() {
     try {
-    await AppAccess.requireAccess(supabaseClient);
+    const access = await AppAccess.requireAccess(supabaseClient);
     renderAssessmentInputs();
 
     if (!scoreId) {
 
+      // The profile name is a convenience, never an authorization claim.
+      const profile = await supabaseClient.from('profiles').select('name').eq('id', access.user.id).maybeSingle();
+      AppAccess.assertCurrent(access.version);
+      if (!profile.error) document.getElementById('userName').value = profile.data?.name || '';
       loadTimeAllocation([]);
       editorReady = true;
       document.getElementById('reportForm').inert = false;
@@ -1313,7 +1169,7 @@
     updateRealGrade();
 
     document.getElementById('perceivedDifficulty').value =
-      data.perceived_difficulty || '보통';
+      data.perceived_difficulty || '';
 
     document.getElementById('oneLineReview').value =
       data.one_line_review || '';
@@ -1712,6 +1568,16 @@
         } catch (error) { throw new Error(domain.label + ': ' + error.message); }
       }
       let savedId = scoreId;
+      if (!scoreId) for (const domain of EnglishDomains.domains) {
+        // A brief score entry is not a complete per-question assessment.
+        reportData['loss_' + domain.key].assessment_status = 'unassessed';
+      }
+      // Collapsing optional details must not erase old fields or normalize unknown legacy values.
+      if (scoreId && !advancedDirty) {
+        const basicKeys = new Set(['user_id','exam_title','real_score','real_grade','one_line_review','next_goal']);
+        for (const key of Object.keys(reportData)) if (!basicKeys.has(key)) delete reportData[key];
+      }
+
 
 
       if (scoreId) {
