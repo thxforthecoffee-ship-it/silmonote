@@ -4,10 +4,10 @@ const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'korean.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'korean.html'),'utf8');
 const K=require('../korean-core.js'),E=require('../korean-exam-core.js');
-function context(){const nodes=new Map();const sandbox={KoreanCore:K,KoreanExam:E,location:{href:'korean.html'},URLSearchParams,TextEncoder,console,document:{getElementById(id){if(!nodes.has(id))nodes.set(id,{textContent:'',hidden:false,replaceChildren(){}});return nodes.get(id);}},AppAccess:{assertCurrent(){}}};vm.createContext(sandbox);vm.runInContext(source.slice(0,source.indexOf("for(const area of ['',...K.AREAS])")),sandbox);return sandbox;}
+function context(){const nodes=new Map();const sandbox={KoreanCore:K,KoreanExam:E,location:{href:'korean.html'},URLSearchParams,TextEncoder,console,document:{body:{dataset:{}},getElementById(id){if(!nodes.has(id))nodes.set(id,{textContent:'',hidden:false,replaceChildren(){}});return nodes.get(id);}},AppAccess:{assertCurrent(){}}};vm.createContext(sandbox);vm.runInContext(source.slice(0,source.indexOf("for(const area of ['',...K.AREAS])")),sandbox);return sandbox;}
 (async()=>{
-assert.match(source,/basicScoreFields=new Set\(\['exam_mode','elective','score','review','next_goal'\]\)/);
-assert.match(source,/questionEditor=makeQuestionEditor\(extra,/);
+assert.match(source,/basicScoreFields=new Set\(\['exam_mode','elective','score'\]\)/);
+assert.match(source,/questionEditor=makeQuestionEditor\(legacy,/);
 assert.match(source,/extra.open=false/);
 assert.match(html,/>누적 점수표<\/h2>/);
 assert.ok(html.indexOf('id="scoreRows"')<html.indexOf('id="scoreChart"'));

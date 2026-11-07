@@ -52,3 +52,12 @@ Official structure references verified October 31, 2026:
 - MOE 2028 reform: https://www.moe.go.kr/boardCnts/viewRenew.do?boardID=294&boardSeq=102385&lev=0
 
 Additional test: `node tests/korean-exam-core.test.cjs`. Updated synthetic browser fixture exercises saving a selected-question review. A blocked Chromium launch must be disclosed, not counted as a passed browser test. No real student records are used by the fixtures.
+
+## November 7, 2026 split entry pages
+
+- `korean-analysis.html` opens a compact score editor. Optional reading/literature/elective earned and maximum points are recorded as scalar JSON keys, with no automatic section-allocation assumptions.
+- `korean-notes.html` opens the separate question editor. Secondary reflection fields remain in a collapsed optional section.
+- `korean.html` remains the cumulative report and old detail URLs keep working. All three pages share authentication, optimistic concurrency, photo and teacher-review behavior.
+- Existing embedded question reviews are preserved and remain editable under the legacy-details section; new detailed reviews belong on the note page.
+- No database migration, user-data rewrite or access-control change. New blank area values are not converted to zeros.
+- Run `node tests/korean-split.test.cjs` plus existing Korean core/exam/simple-entry tests. Browser launch may be unavailable in restricted environments; do not count a blocked launch as a pass.

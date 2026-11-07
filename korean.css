@@ -5,3 +5,10 @@
 .question-review{border:1px solid #dce6e1;border-radius:10px;padding:18px;margin:14px 0}.question-review .grid{gap:12px}.question-review button{margin-top:12px}
 
 .optional-score-details{margin-top:20px;border-top:1px solid #dce6e1;padding-top:16px}.optional-score-details>summary{font-weight:650;padding:8px 0}.optional-score-details>.grid{margin-top:16px}#recordForm textarea[name="review"],#recordForm textarea[name="next_goal"]{min-height:64px}#scoreHistoryTitle{color:#17685c}#scoreChart{margin-top:20px}
+
+/* Separate entry pages keep the cumulative report at korean.html. */
+.entry-nav{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}.entry-nav a{display:block;border:1px solid #b6ccc6;border-radius:10px;padding:12px 16px;text-decoration:none;background:#fff;font-weight:650}
+body[data-entry-mode="score"] .entry-nav a[href^="korean-analysis"],body[data-entry-mode="note"] .entry-nav a[href^="korean-notes"]{background:#17685c;color:#fff}
+body[data-entry-mode] #report,body[data-entry-mode] #print,body[data-entry-mode] #typeFilter{display:none!important}body[data-entry-mode] #workspace>.notice{display:none}
+.area-score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}.area-score-grid input{max-width:100%}body[data-entry-mode] #recordForm textarea{min-height:76px}
+@media(max-width:650px){.entry-nav{display:grid;grid-template-columns:1fr}.entry-nav a{padding:12px}.area-score-grid{gap:10px}body[data-entry-mode] .table-scroll table{min-width:0}}
