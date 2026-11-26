@@ -827,6 +827,7 @@
 
   const scoreId =
     urlParams.get('id');
+  const adminPreview = urlParams.get('preview') === '1';
 
 
   /* ==========================================
@@ -1124,7 +1125,8 @@
   let saving = false;
   async function loadScoreData() {
     try {
-    const access = await AppAccess.requireAccess(supabaseClient);
+    if (adminPreview && !scoreId) throw AppAccess.unavailable();
+    const access = await AppAccess.requireAccess(supabaseClient, adminPreview);
     renderAssessmentInputs();
 
     if (!scoreId) {
@@ -1142,7 +1144,9 @@
     }
 
 
-    const { data } = await AppAccess.loadActive(supabaseClient, 'score_reports', scoreId, true);
+    const loaded = await AppAccess.loadActive(supabaseClient, 'score_reports', scoreId, !adminPreview);
+    if (adminPreview && !loaded.access.isAdmin) throw AppAccess.unavailable();
+    const { data } = loaded;
     originalLossData = data;
     renderAssessmentInputs(data);
 
@@ -1301,6 +1305,29 @@
       data.time_allocation
     );
 
+    if (adminPreview) {
+
+    // A preview never becomes an editor. The existing admin check and database policies still apply.
+    const form = document.getElementById('reportForm');
+    const status = document.getElementById('editorStatus');
+    form.querySelectorAll('input, textarea, select, button').forEach(control => {
+      if (control.matches('textarea, input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=range]):not([type=color])')) {
+        control.readOnly = true;
+      } else if (!control.matches('.tab-btn')) {
+        control.disabled = true;
+      }
+      if (control.matches('[type=submit], .add-row-btn, .remove-row-btn')) control.hidden = true;
+    });
+    form.inert = false;
+    status.textContent = '관리자 읽기 전용 · 학생이 저장한 분석지 입력값입니다. ';
+    const back = document.createElement('a');
+    back.href = 'score_view.html?id=' + encodeURIComponent(scoreId);
+    back.textContent = '상세보기로 돌아가기';
+    status.append(back);
+
+      document.getElementById('extraAnalysis').open = true;
+      return;
+    }
     editorReady = true;
     document.getElementById('reportForm').inert = false;
     document.getElementById('editorStatus').textContent = !data.loss_grammar && data.loss_long ? '이전 양식의 유형 미분류 원문은 별도로 보존합니다. 새 유형에 임의로 배정하지 않습니다.' : '';
@@ -1316,7 +1343,7 @@
   async function saveReport(e) {
 
     e.preventDefault();
-    if (!editorReady || saving) return;
+    if (adminPreview || !editorReady || saving) return;
     saving = true;
 
 
