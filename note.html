@@ -296,11 +296,12 @@
   AppAccess.watch(supabaseClient);
 
   let notePhotos = null;
+  const adminPreview = new URLSearchParams(window.location.search).get('preview') === '1';
   let editorReady = false;
   let saving = false;
   async function saveDeepNote(e) {
     e.preventDefault();
-    if (!editorReady || saving) return;
+    if (adminPreview || !editorReady || saving) return;
     if (notePhotos?.isBusy()) { alert("사진 처리가 끝난 뒤 저장해 주세요."); return; }
     saving = true;
     const button = document.querySelector('.btn-submit');
@@ -389,13 +390,17 @@
 
   async function loadNoteData() {
     try {
-    const access = await AppAccess.requireAccess(supabaseClient);
-    const urlParams = new URLSearchParams(window.location.search);
-    const noteId = urlParams.get('id');
+    const noteId = new URLSearchParams(window.location.search).get('id');
+    if (adminPreview && !noteId) throw AppAccess.unavailable();
+    const access = await AppAccess.requireAccess(supabaseClient, adminPreview);
     let data = null;
-    if (noteId) ({ data } = await AppAccess.loadActive(supabaseClient, 'notes', noteId, true));
+    if (noteId) {
+      const loaded = await AppAccess.loadActive(supabaseClient, 'notes', noteId, !adminPreview);
+      if (adminPreview && !loaded.access.isAdmin) throw AppAccess.unavailable();
+      data = loaded.data;
+    }
     notePhotos?.destroy();
-    notePhotos = NotePhotos.create({container:document.getElementById('notePhotoEditor'),client:supabaseClient,kind:'english',ownerId:access.user.id,parentId:noteId,editable:true,verifyAccess:()=>AppAccess.requireAccess(supabaseClient),assertCurrent:AppAccess.assertCurrent});
+    notePhotos = NotePhotos.create({container:document.getElementById('notePhotoEditor'),client:supabaseClient,kind:'english',ownerId:adminPreview ? data.user_id : access.user.id,parentId:noteId,editable:!adminPreview,verifyAccess:()=>AppAccess.requireAccess(supabaseClient, adminPreview),assertCurrent:AppAccess.assertCurrent});
     await notePhotos.load();
     if (!noteId) { editorReady = true; document.getElementById('deepNoteForm').inert = false; document.getElementById('editorStatus').textContent = ''; return; }
 
@@ -465,6 +470,28 @@
       } else {
         commentBox.value = "아직 선생님 피드백이 등록되지 않았습니다.";
       }
+    }
+    if (adminPreview) {
+
+    // A preview never becomes an editor. The existing admin check and database policies still apply.
+    const form = document.getElementById('deepNoteForm');
+    const status = document.getElementById('editorStatus');
+    form.querySelectorAll('input, textarea, select, button').forEach(control => {
+      if (control.matches('textarea, input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=range]):not([type=color])')) {
+        control.readOnly = true;
+      } else if (!control.matches('.tab-btn')) {
+        control.disabled = true;
+      }
+      if (control.matches('[type=submit], .add-row-btn, .remove-row-btn')) control.hidden = true;
+    });
+    form.inert = false;
+    status.textContent = '관리자 읽기 전용 · 학생이 저장한 오답노트 입력값입니다. ';
+    const back = document.createElement('a');
+    back.href = 'view.html?id=' + encodeURIComponent(noteId);
+    back.textContent = '상세보기로 돌아가기';
+    status.append(back);
+
+      return;
     }
     editorReady = true;
     document.getElementById('deepNoteForm').inert = false;

@@ -140,6 +140,15 @@
       const deleteReqBtn = document.getElementById('deleteReqBtn');
       
       if (IS_ADMIN) {
+        const previewLink = document.createElement('a');
+        previewLink.className = 'btn-main-home';
+        previewLink.href = 'note.html?preview=1&id=' + encodeURIComponent(noteId);
+        previewLink.textContent = '학생 입력 화면으로 보기';
+        const previousPreview = document.getElementById('studentInputPreview');
+        previewLink.id = 'studentInputPreview';
+        if (previousPreview) previousPreview.replaceWith(previewLink);
+        else document.getElementById('editBtn').insertAdjacentElement('beforebegin', previewLink);
+
         backLink.href = 'admin.html';
         backLink.innerText = '⬅️ 관리자 대시보드로 돌아가기';
         bottomBackBtn.innerText = '⬅️ 관리자 대시보드로 돌아가기';
